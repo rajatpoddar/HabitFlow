@@ -1,0 +1,105 @@
+{
+  "project_name": "HabitFlow",
+  "version": "1.0.0",
+  "design_system": {
+    "name": "Emerald Canopy",
+    "theme": {
+      "colors": {
+        "primary": "#006D4A",
+        "primary_container": "#69F6B8",
+        "surface": "#F7FAF5",
+        "on_surface": "#2B352F",
+        "on_surface_variant": "#58615B",
+        "error": "#A83836"
+      },
+      "typography": {
+        "headline": "Manrope",
+        "body": "Inter"
+      },
+      "borderRadius": "1.5rem"
+    }
+  },
+  "pages": [
+    {
+      "id": "landing",
+      "title": "Landing Page",
+      "route": "/",
+      "sections": ["Hero", "Features", "How It Works", "Testimonials", "Footer"]
+    },
+    {
+      "id": "login",
+      "title": "Login",
+      "route": "/login",
+      "components": ["AuthCard", "LoginForm"]
+    },
+    {
+      "id": "signup",
+      "title": "Sign Up",
+      "route": "/signup",
+      "components": ["AuthCard", "SignupForm"]
+    },
+    {
+      "id": "dashboard",
+      "title": "Dashboard",
+      "route": "/dashboard",
+      "states": ["Empty", "Loading", "Populated"],
+      "components": ["TopAppBar", "HeroProgress", "HabitList", "BottomNavBar"]
+    },
+    {
+      "id": "analytics",
+      "title": "Analytics",
+      "route": "/analytics",
+      "components": ["WeeklyOverviewChart", "StreakCard", "Heatmap", "TopHabitsList"]
+    },
+    {
+      "id": "settings",
+      "title": "Settings",
+      "route": "/settings",
+      "sections": ["Profile", "AppPreferences", "AccountActions"]
+    }
+  ],
+  "components": [
+    {
+      "name": "HabitItem",
+      "props": {
+        "title": "string",
+        "category": "string",
+        "duration": "string",
+        "isCompleted": "boolean"
+      },
+      "interactions": ["ToggleCompletion"]
+    },
+    {
+      "name": "ProgressRing",
+      "props": {
+        "percentage": "number",
+        "label": "string"
+      }
+    }
+  ],
+  "data_schema": {
+    "User": {
+      "id": "uuid",
+      "name": "string",
+      "email": "string",
+      "avatar_url": "url",
+      "level": "string",
+      "xp": "number"
+    },
+    "Habit": {
+      "id": "uuid",
+      "user_id": "uuid",
+      "title": "string",
+      "frequency": "enum(DAILY, WEEKLY, CUSTOM)",
+      "target_per_day": "number",
+      "color": "hex",
+      "is_active": "boolean"
+    },
+    "Log": {
+      "id": "uuid",
+      "habit_id": "uuid",
+      "timestamp": "datetime",
+      "status": "enum(COMPLETED, MISSED)"
+    }
+  }
+}

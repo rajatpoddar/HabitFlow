@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HabitFlow - Sign Up</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed": "#002113",
+                        "background": "#f7faf5",
+                        "on-surface": "#181c1a",
+                        "surface-container": "#ecefea",
+                        "on-secondary": "#ffffff",
+                        "surface-variant": "#e0e3df",
+                        "outline": "#6f7a72",
+                        "inverse-primary": "#81d8ad",
+                        "tertiary-fixed-dim": "#ffb3ae",
+                        "on-primary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "tertiary": "#79302d",
+                        "surface-container-high": "#e6e9e4",
+                        "on-tertiary-container": "#ffcfcb",
+                        "on-secondary-container": "#00714c",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#006c49",
+                        "on-primary-fixed-variant": "#005236",
+                        "secondary-fixed-dim": "#4edea2",
+                        "secondary-container": "#6cf8ba",
+                        "surface-tint": "#006c49",
+                        "primary-container": "#006d4a",
+                        "outline-variant": "#bec9c0",
+                        "on-primary-fixed": "#002113",
+                        "surface-container-low": "#f1f4ef",
+                        "inverse-on-surface": "#eff2ed",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#81d8ad",
+                        "primary-fixed": "#9cf5c8",
+                        "on-tertiary-fixed-variant": "#782f2d",
+                        "on-primary-container": "#94ecbf",
+                        "surface-dim": "#d8dbd6",
+                        "surface-bright": "#f7faf5",
+                        "secondary-fixed": "#6ffbbd",
+                        "on-background": "#181c1a",
+                        "tertiary-fixed": "#ffdad7",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-container": "#974743",
+                        "on-tertiary-fixed": "#3e0406",
+                        "surface-container-highest": "#e0e3df",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#005236",
+                        "inverse-surface": "#2d312e",
+                        "surface": "#f7faf5",
+                        "primary": "#005237",
+                        "on-surface-variant": "#3f4943",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body min-h-screen flex items-center justify-center p-6">
+<main class="w-full max-w-md">
+<div class="mb-12 text-center">
+<h1 class="font-headline font-black text-4xl tracking-tight text-primary mb-2">HabitFlow</h1>
+<p class="font-body text-on-surface-variant text-lg">The Digital Conservatory</p>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-8 sm:p-10 shadow-[0_40px_60px_rgba(0,82,55,0.04)] relative z-10">
+<h2 class="font-headline font-bold text-2xl text-on-surface mb-8">Begin your journey</h2>
+<form action="#" class="space-y-6" method="POST">
+<div class="space-y-1">
+<label class="font-label text-sm font-medium text-on-surface-variant block ml-1" for="name">Full Name</label>
+<div class="relative bg-surface-container-highest rounded-t-lg border-b-2 border-primary/20 focus-within:border-primary transition-colors">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-primary/60 text-xl">person</span>
+</div>
+<input class="block w-full pl-12 pr-4 py-4 bg-transparent border-none text-on-surface focus:ring-0 sm:text-sm font-body placeholder:text-on-surface-variant/50" id="name" name="name" placeholder="John Doe" required="" type="text"/>
+</div>
+</div>
+<div class="space-y-1">
+<label class="font-label text-sm font-medium text-on-surface-variant block ml-1" for="email">Email Address</label>
+<div class="relative bg-surface-container-highest rounded-t-lg border-b-2 border-primary/20 focus-within:border-primary transition-colors">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-primary/60 text-xl">mail</span>
+</div>
+<input class="block w-full pl-12 pr-4 py-4 bg-transparent border-none text-on-surface focus:ring-0 sm:text-sm font-body placeholder:text-on-surface-variant/50" id="email" name="email" placeholder="you@example.com" required="" type="email"/>
+</div>
+</div>
+<div class="space-y-1">
+<label class="font-label text-sm font-medium text-on-surface-variant block ml-1" for="password">Password</label>
+<div class="relative bg-surface-container-highest rounded-t-lg border-b-2 border-primary/20 focus-within:border-primary transition-colors">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-primary/60 text-xl">lock</span>
+</div>
+<input class="block w-full pl-12 pr-4 py-4 bg-transparent border-none text-on-surface focus:ring-0 sm:text-sm font-body placeholder:text-on-surface-variant/50" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+</div>
+</div>
+<div class="space-y-1">
+<label class="font-label text-sm font-medium text-on-surface-variant block ml-1" for="confirm_password">Confirm Password</label>
+<div class="relative bg-surface-container-highest rounded-t-lg border-b-2 border-primary/20 focus-within:border-primary transition-colors">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-primary/60 text-xl">lock</span>
+</div>
+<input class="block w-full pl-12 pr-4 py-4 bg-transparent border-none text-on-surface focus:ring-0 sm:text-sm font-body placeholder:text-on-surface-variant/50" id="confirm_password" name="confirm_password" placeholder="••••••••" required="" type="password"/>
+</div>
+</div>
+<div class="pt-4">
+<button class="w-full flex justify-center items-center py-4 px-6 border border-transparent rounded-full shadow-sm text-base font-headline font-bold text-on-primary bg-gradient-to-r from-primary to-primary-container hover:scale-[1.02] hover:from-secondary hover:to-secondary-container hover:text-on-secondary-container transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-surface" type="submit">
+                        Sign Up
+                    </button>
+</div>
+</form>
+<div class="mt-8 text-center">
+<p class="text-sm text-on-surface-variant font-body">
+                    Already cultivating habits? 
+                    <a class="font-medium text-primary hover:text-primary-container transition-colors ml-1" href="#">Log in here.</a>
+</p>
+</div>
+</div>
+<div class="mt-12 text-center text-sm text-on-surface-variant/60 font-label">
+            © 2024 HabitFlow Digital Conservatory
+        </div>
+</main>
+</body></html>

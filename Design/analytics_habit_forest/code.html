@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Analytics - Habit Forest</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#181c1a",
+                        "secondary-fixed": "#6ffbbd",
+                        "primary-container": "#006d4a",
+                        "surface-container-highest": "#e0e3df",
+                        "tertiary-fixed": "#ffdad7",
+                        "on-secondary-container": "#00714c",
+                        "surface-container": "#ecefea",
+                        "inverse-primary": "#81d8ad",
+                        "background": "#f7faf5",
+                        "on-error-container": "#93000a",
+                        "secondary": "#006c49",
+                        "on-surface-variant": "#3f4943",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#d8dbd6",
+                        "surface-variant": "#e0e3df",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#f1f4ef",
+                        "secondary-fixed-dim": "#4edea2",
+                        "inverse-surface": "#2d312e",
+                        "on-surface": "#181c1a",
+                        "surface-bright": "#f7faf5",
+                        "inverse-on-surface": "#eff2ed",
+                        "on-primary-fixed-variant": "#005236",
+                        "on-primary-fixed": "#002113",
+                        "outline-variant": "#bec9c0",
+                        "tertiary-container": "#974743",
+                        "primary": "#005237",
+                        "secondary-container": "#6cf8ba",
+                        "error": "#ba1a1a",
+                        "outline": "#6f7a72",
+                        "on-primary": "#ffffff",
+                        "surface-tint": "#006c49",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#782f2d",
+                        "on-secondary-fixed": "#002113",
+                        "surface-container-high": "#e6e9e4",
+                        "primary-fixed": "#9cf5c8",
+                        "primary-fixed-dim": "#81d8ad",
+                        "surface": "#f7faf5",
+                        "tertiary-fixed-dim": "#ffb3ae",
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed": "#3e0406",
+                        "on-tertiary-container": "#ffcfcb",
+                        "on-secondary-fixed-variant": "#005236",
+                        "tertiary": "#79302d",
+                        "on-primary-container": "#94ecbf"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {},
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7faf5; color: #181c1a; }
+        h1, h2, h3, h4, h5, h6, .font-headline { font-family: 'Manrope', sans-serif; }
+        .glass-panel { background: rgba(224, 227, 223, 0.6); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center px-6 py-4 sticky top-0 z-40 bg-[#f7faf5]/80 dark:bg-[#181c1a]/80 backdrop-blur-xl">
+<div class="flex items-center gap-4">
+<img alt="Profile" class="w-10 h-10 rounded-full object-cover" data-alt="close up portrait of a young woman with natural makeup in soft daylight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBYYEDkrGYLgts3uPwxsZ-0FhSMwxkWf2N28FgVcQyfY7dC21FSpst2t-9K1UfquwONbZK4KakAqFH12Sa6PGaYXOG7qSNlSvARtZG_WBC-VMzx3G7EIasH3anEMslFcrjPaHPg3NaWsdI96hAUPPesprx3Dgej9FyVLpYlyWU5aKcQ3Zza6SKmMwI-A10R5kAUF07Ds4VNcx9SxUKAg4ckACYqwq2a1UxF9pw4Q94_-IGkdjao_s0Yf3fGJPpo2gazLVlmqQs9yQ"/>
+<h1 class="font-manrope text-2xl font-bold tracking-tight text-[#005237] dark:text-[#6cf8ba]">Habit Forest</h1>
+</div>
+<button class="text-[#005237] dark:text-[#6cf8ba] hover:opacity-80 transition-opacity scale-102-on-hover">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</header>
+<main class="max-w-5xl mx-auto px-6 pt-8 pb-12 space-y-12">
+<header class="mb-8">
+<h2 class="font-headline text-5xl font-extrabold text-primary tracking-tight">Analytics</h2>
+<p class="font-body text-on-surface-variant mt-2 text-lg">Your growth over time.</p>
+</header>
+<!-- Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Weekly Overview -->
+<div class="md:col-span-2 bg-surface-container-low rounded-lg p-8 relative overflow-hidden group">
+<div class="flex justify-between items-start mb-8">
+<div>
+<h3 class="font-headline text-2xl font-bold text-primary">Weekly Overview</h3>
+<p class="font-body text-on-surface-variant text-sm mt-1">Consistency score: 85%</p>
+</div>
+<span class="material-symbols-outlined text-primary-fixed-dim" data-icon="bar_chart" style="font-variation-settings: 'FILL' 1;">bar_chart</span>
+</div>
+<div class="flex items-end justify-between h-40 gap-2 mt-4 relative z-10">
+<!-- Bars -->
+<div class="w-full flex flex-col justify-end items-center gap-2 group/bar">
+<div class="w-full bg-primary-container rounded-t-md transition-all duration-300 h-24 group-hover/bar:bg-secondary-container"></div>
+<span class="font-label text-xs text-on-surface-variant">Mon</span>
+</div>
+<div class="w-full flex flex-col justify-end items-center gap-2 group/bar">
+<div class="w-full bg-primary rounded-t-md transition-all duration-300 h-32 group-hover/bar:bg-secondary-container"></div>
+<span class="font-label text-xs text-on-surface-variant">Tue</span>
+</div>
+<div class="w-full flex flex-col justify-end items-center gap-2 group/bar">
+<div class="w-full bg-primary-container rounded-t-md transition-all duration-300 h-28 group-hover/bar:bg-secondary-container"></div>
+<span class="font-label text-xs text-on-surface-variant">Wed</span>
+</div>
+<div class="w-full flex flex-col justify-end items-center gap-2 group/bar">
+<div class="w-full bg-surface-container-highest rounded-t-md transition-all duration-300 h-12 group-hover/bar:bg-tertiary-container"></div>
+<span class="font-label text-xs text-on-surface-variant">Thu</span>
+</div>
+<div class="w-full flex flex-col justify-end items-center gap-2 group/bar">
+<div class="w-full bg-primary rounded-t-md transition-all duration-300 h-36 group-hover/bar:bg-secondary-container"></div>
+<span class="font-label text-xs text-on-surface-variant">Fri</span>
+</div>
+<div class="w-full flex flex-col justify-end items-center gap-2 group/bar">
+<div class="w-full bg-secondary-container rounded-t-md transition-all duration-300 h-40"></div>
+<span class="font-label text-xs text-primary font-bold">Sat</span>
+</div>
+<div class="w-full flex flex-col justify-end items-center gap-2 group/bar">
+<div class="w-full bg-surface-container-highest rounded-t-md transition-all duration-300 h-8"></div>
+<span class="font-label text-xs text-on-surface-variant">Sun</span>
+</div>
+</div>
+</div>
+<!-- Streaks -->
+<div class="grid grid-cols-1 gap-6">
+<div class="bg-surface-container-high rounded-lg p-6 flex flex-col justify-center items-center text-center">
+<span class="material-symbols-outlined text-4xl text-primary mb-2" data-icon="local_fire_department" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<h4 class="font-headline text-5xl font-extrabold text-primary tracking-tighter">14</h4>
+<p class="font-body text-sm text-on-surface-variant mt-1">Current Streak</p>
+</div>
+<div class="bg-surface-container-lowest rounded-lg p-6 flex flex-col justify-center items-center text-center shadow-[0_20px_40px_-10px_rgba(0,82,55,0.05)]">
+<span class="material-symbols-outlined text-3xl text-secondary mb-2" data-icon="emoji_events">emoji_events</span>
+<h4 class="font-headline text-4xl font-bold text-on-surface tracking-tight">42</h4>
+<p class="font-body text-sm text-on-surface-variant mt-1">Longest Streak</p>
+</div>
+</div>
+</div>
+<!-- Activity Heatmap -->
+<section class="bg-surface-container rounded-lg p-8">
+<header class="flex justify-between items-center mb-6">
+<h3 class="font-headline text-xl font-bold text-primary">Consistency Matrix</h3>
+<span class="material-symbols-outlined text-outline" data-icon="calendar_month">calendar_month</span>
+</header>
+<div class="grid grid-cols-[auto_1fr] gap-4">
+<!-- Days Label -->
+<div class="flex flex-col justify-between text-xs font-label text-on-surface-variant py-2">
+<span>Mon</span>
+<span>Wed</span>
+<span>Fri</span>
+</div>
+<!-- Grid -->
+<div class="grid grid-cols-12 gap-1.5 md:gap-2">
+<!-- Simulated weeks (columns) and days (rows) -->
+<!-- Week 1 --> <div class="bg-surface-container-highest rounded-sm aspect-square"></div> <div class="bg-primary/20 rounded-sm aspect-square"></div> <div class="bg-primary/40 rounded-sm aspect-square"></div> <div class="bg-primary/80 rounded-sm aspect-square"></div> <div class="bg-primary rounded-sm aspect-square"></div> <div class="bg-surface-container-highest rounded-sm aspect-square"></div> <div class="bg-primary/60 rounded-sm aspect-square"></div>
+<!-- Week 2 --> <div class="bg-primary/20 rounded-sm aspect-square"></div> <div class="bg-primary/60 rounded-sm aspect-square"></div> <div class="bg-primary rounded-sm aspect-square"></div> <div class="bg-primary/80 rounded-sm aspect-square"></div> <div class="bg-surface-container-highest rounded-sm aspect-square"></div> <div class="bg-primary/40 rounded-sm aspect-square"></div> <div class="bg-primary/20 rounded-sm aspect-square"></div>
+<!-- Week 3 --> <div class="bg-primary/40 rounded-sm aspect-square"></div> <div class="bg-primary/80 rounded-sm aspect-square"></div> <div class="bg-surface-container-highest rounded-sm aspect-square"></div> <div class="bg-primary rounded-sm aspect-square"></div> <div class="bg-primary/60 rounded-sm aspect-square"></div> <div class="bg-primary/20 rounded-sm aspect-square"></div> <div class="bg-primary/40 rounded-sm aspect-square"></div>
+<!-- Week 4 --> <div class="bg-primary rounded-sm aspect-square"></div> <div class="bg-primary/60 rounded-sm aspect-square"></div> <div class="bg-primary/20 rounded-sm aspect-square"></div> <div class="bg-surface-container-highest rounded-sm aspect-square"></div> <div class="bg-primary/80 rounded-sm aspect-square"></div> <div class="bg-primary/40 rounded-sm aspect-square"></div> <div class="bg-primary rounded-sm aspect-square"></div>
+<!-- Week 5 --> <div class="bg-primary/60 rounded-sm aspect-square"></div> <div class="bg-surface-container-highest rounded-sm aspect-square"></div> <div class="bg-primary/80 rounded-sm aspect-square"></div> <div class="bg-primary/40 rounded-sm aspect-square"></div> <div class="bg-primary/20 rounded-sm aspect-square"></div> <div class="bg-primary rounded-sm aspect-square"></div> <div class="bg-primary/60 rounded-sm aspect-square"></div>
+<!-- Week 6 --> <div class="bg-primary/20 rounded-sm aspect-square"></div> <div class="bg-primary/40 rounded-sm aspect-square"></div> <div class="bg-primary rounded-sm aspect-square"></div> <div class="bg-primary/80 rounded-sm aspect-square"></div> <div class="bg-surface-container-highest rounded-sm aspect-square"></div> <div class="bg-primary/60 rounded-sm aspect-square"></div> <div class="bg-primary/20 rounded-sm aspect-square"></div>
+<!-- Week 7 --> <div class="bg-surface-container-highest rounded-sm aspect-square"></div> <div class="bg-primary rounded-sm aspect-square"></div> <div class="bg-primary/60 rounded-sm aspect-square"></div> <div class="bg-primary/20 rounded-sm aspect-square"></div> <div class="bg-primary/40 rounded-sm aspect-square"></div> <div class="bg-primary/80 rounded-sm aspect-square"></div> <div class="bg-surface-container-highest rounded-sm aspect-square"></div>
+<!-- Week 8 --> <div class="bg-primary/80 rounded-sm aspect-square"></div> <div class="bg-primary/20 rounded-sm aspect-square"></div> <div class="bg-surface-container-highest rounded-sm aspect-square"></div> <div class="bg-primary/60 rounded-sm aspect-square"></div> <div class="bg-primary rounded-sm aspect-square"></div> <div class="bg-primary/40 rounded-sm aspect-square"></div> <div class="bg-primary/80 rounded-sm aspect-square"></div>
+<!-- Week 9 --> <div class="bg-primary/40 rounded-sm aspect-square"></div> <div class="bg-primary/80 rounded-sm aspect-square"></div> <div class="bg-primary/20 rounded-sm aspect-square"></div> <div class="bg-surface-container-highest rounded-sm aspect-square"></div> <div class="bg-primary/60 rounded-sm aspect-square"></div> <div class="bg-primary rounded-sm aspect-square"></div> <div class="bg-primary/40 rounded-sm aspect-square"></div>
+<!-- Week 10--> <div class="bg-primary rounded-sm aspect-square"></div> <div class="bg-primary/60 rounded-sm aspect-square"></div> <div class="bg-surface-container-highest rounded-sm aspect-square"></div> <div class="bg-primary/40 rounded-sm aspect-square"></div> <div class="bg-primary/80 rounded-sm aspect-square"></div> <div class="bg-primary/20 rounded-sm aspect-square"></div> <div class="bg-primary rounded-sm aspect-square"></div>
+<!-- Week 11--> <div class="bg-primary/60 rounded-sm aspect-square"></div> <div class="bg-surface-container-highest rounded-sm aspect-square"></div> <div class="bg-primary/40 rounded-sm aspect-square"></div> <div class="bg-primary/80 rounded-sm aspect-square"></div> <div class="bg-primary rounded-sm aspect-square"></div> <div class="bg-primary/60 rounded-sm aspect-square"></div> <div class="bg-primary/20 rounded-sm aspect-square"></div>
+<!-- Week 12--> <div class="bg-primary/20 rounded-sm aspect-square"></div> <div class="bg-primary rounded-sm aspect-square"></div> <div class="bg-primary/80 rounded-sm aspect-square"></div> <div class="bg-surface-container-highest rounded-sm aspect-square"></div> <div class="bg-primary/40 rounded-sm aspect-square"></div> <div class="bg-primary/60 rounded-sm aspect-square"></div> <div class="bg-primary rounded-sm aspect-square"></div>
+</div>
+</div>
+<div class="flex justify-end items-center gap-2 mt-4 text-xs font-label text-on-surface-variant">
+<span>Less</span>
+<div class="w-3 h-3 bg-surface-container-highest rounded-sm"></div>
+<div class="w-3 h-3 bg-primary/40 rounded-sm"></div>
+<div class="w-3 h-3 bg-primary/80 rounded-sm"></div>
+<div class="w-3 h-3 bg-primary rounded-sm"></div>
+<span>More</span>
+</div>
+</section>
+<!-- Two Columns: Top Growing & Needs Attention -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Top Growing Habits -->
+<section>
+<h3 class="font-headline text-2xl font-bold text-primary mb-6">Top Growing Habits</h3>
+<div class="space-y-6">
+<div class="bg-surface-container-lowest rounded-lg p-5 shadow-[0_10px_30px_-15px_rgba(0,82,55,0.05)]">
+<div class="flex justify-between items-center mb-3">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-container/30 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-sm" data-icon="water_drop">water_drop</span>
+</div>
+<span class="font-body font-medium text-on-surface">Hydration</span>
+</div>
+<span class="font-headline font-bold text-primary">92%</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 92%"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-lg p-5 shadow-[0_10px_30px_-15px_rgba(0,82,55,0.05)]">
+<div class="flex justify-between items-center mb-3">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-container/30 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-sm" data-icon="menu_book">menu_book</span>
+</div>
+<span class="font-body font-medium text-on-surface">Reading</span>
+</div>
+<span class="font-headline font-bold text-primary">85%</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 85%"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Needs Attention -->
+<section>
+<h3 class="font-headline text-2xl font-bold text-tertiary mb-6 flex items-center gap-2">
+                    Needs Attention
+                    <span class="material-symbols-outlined text-sm" data-icon="info">info</span>
+</h3>
+<div class="space-y-4">
+<div class="bg-surface-container-low rounded-lg p-4 flex justify-between items-center border border-outline-variant/20">
+<div class="flex items-center gap-4">
+<div class="w-2 h-2 rounded-full bg-tertiary"></div>
+<div>
+<h4 class="font-body font-medium text-on-surface">Morning Stretching</h4>
+<p class="font-label text-xs text-on-surface-variant mt-0.5">Missed 3 days</p>
+</div>
+</div>
+<button class="bg-surface text-primary text-sm font-medium px-4 py-2 rounded-full hover:bg-surface-container transition-colors shadow-sm">Log Now</button>
+</div>
+<div class="bg-surface-container-low rounded-lg p-4 flex justify-between items-center border border-outline-variant/20">
+<div class="flex items-center gap-4">
+<div class="w-2 h-2 rounded-full bg-tertiary-container"></div>
+<div>
+<h4 class="font-body font-medium text-on-surface">Journaling</h4>
+<p class="font-label text-xs text-on-surface-variant mt-0.5">Under goal for week</p>
+</div>
+</div>
+<button class="bg-surface text-primary text-sm font-medium px-4 py-2 rounded-full hover:bg-surface-container transition-colors shadow-sm">Review</button>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 flex justify-around items-center p-3 mb-6 bg-emerald-50/60 dark:bg-emerald-950/60 backdrop-blur-2xl rounded-[2.5rem] mx-auto shadow-[0_40px_60px_-15px_rgba(0,82,55,0.08)]">
+<a class="flex flex-col items-center justify-center text-emerald-800/40 dark:text-emerald-200/40 px-4 py-2 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/50 rounded-full tap-scale-95 duration-200 ease-out" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="potted_plant">potted_plant</span>
+<span class="font-inter text-[10px] font-medium uppercase tracking-widest">Forest</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-emerald-200/50 dark:bg-emerald-800/50 text-emerald-900 dark:text-emerald-50 rounded-full px-6 py-2 scale-110 transition-all tap-scale-95 duration-200 ease-out" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="analytics" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-inter text-[10px] font-medium uppercase tracking-widest text-emerald-900 dark:text-emerald-50 font-bold">Insights</span>
+</a>
+<a class="flex flex-col items-center justify-center text-emerald-800/40 dark:text-emerald-200/40 px-4 py-2 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/50 rounded-full tap-scale-95 duration-200 ease-out" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="settings">settings</span>
+<span class="font-inter text-[10px] font-medium uppercase tracking-widest">Settings</span>
+</a>
+</nav>
+</body></html>
