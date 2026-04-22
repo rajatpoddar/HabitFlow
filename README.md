@@ -244,3 +244,203 @@ Optional:
 - `OPENAI_API_KEY` — Enhanced AI insights with GPT-4o-mini
 - `STRIPE_SECRET_KEY` — Monetization (structure ready)
 - `NEXT_PUBLIC_SENTRY_DSN` — Error monitoring
+
+
+---
+
+## 📱 PWA & Notifications
+
+### Install as App
+
+**Desktop (Chrome/Edge):**
+- Click "Install App" button on landing page
+- Or click install icon in address bar
+
+**Android:**
+- Click "Install App" button or banner
+- Or use Chrome menu → "Install app"
+
+**iOS:**
+- Tap Share button in Safari
+- Tap "Add to Home Screen"
+- Tap "Add"
+
+### Push Notifications Setup
+
+1. Generate VAPID keys:
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+
+2. Add to `.env.local`:
+   ```env
+   NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-public-key
+   VAPID_PRIVATE_KEY=your-private-key
+   VAPID_SUBJECT=mailto:support@habitflow.app
+   ```
+
+3. Rebuild Docker container:
+   ```bash
+   ./deploy.sh
+   ```
+
+### Debugging
+
+Visit `/debug-pwa` to check:
+- ✅ HTTPS status
+- ✅ Service worker registration
+- ✅ VAPID key configuration
+- ✅ Notification permissions
+- ✅ Manifest validity
+
+---
+
+## 🚀 Production Deployment
+
+### Using Docker (Recommended)
+
+```bash
+# 1. Configure environment
+cp .env.example .env.local
+# Edit .env.local with your production values
+
+# 2. Deploy
+./deploy.sh
+
+# Or manually:
+sudo docker-compose up -d --build
+```
+
+### Environment Variables
+
+Required for production:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_APP_URL=https://your-domain.com
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-vapid-public-key
+VAPID_PRIVATE_KEY=your-vapid-private-key
+VAPID_SUBJECT=mailto:support@your-domain.com
+```
+
+### Reverse Proxy (Synology NAS)
+
+Configure reverse proxy to forward:
+- HTTPS (443) → HTTP (3847)
+- Enable HSTS
+- Add custom headers for X-Forwarded-For, X-Real-IP
+
+See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed instructions.
+
+---
+
+## 📚 Documentation
+
+- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Production deployment on Synology NAS
+- **[PWA Troubleshooting](PWA_TROUBLESHOOTING.md)** - Fix PWA and notification issues
+- **[Testing Guide](TESTING_GUIDE.md)** - Step-by-step testing procedures
+- **[Fixes Summary](FIXES_COMPLETE_SUMMARY.md)** - Recent fixes and improvements
+
+---
+
+## 🐛 Common Issues
+
+### Notifications Not Working
+1. Check VAPID keys are in `.env.local`
+2. Rebuild Docker container: `./deploy.sh`
+3. Visit `/debug-pwa` to verify configuration
+4. On iOS: Must install to home screen first
+
+### Install Button Not Showing
+1. Ensure HTTPS is enabled
+2. Check service worker is registered
+3. Visit `/debug-pwa` for diagnostics
+4. On iOS: No automatic prompt (manual install only)
+
+### Docker Issues
+```bash
+# View logs
+sudo docker-compose logs -f
+
+# Check environment
+sudo docker exec habitflow_app env | grep VAPID
+
+# Restart
+sudo docker-compose restart
+
+# Rebuild
+sudo docker-compose down
+sudo docker-compose up -d --build
+```
+
+---
+
+## 🔧 Useful Commands
+
+```bash
+# Development
+npm run dev              # Start dev server
+npm run build            # Build for production
+npm run lint             # Lint code
+npm run test             # Run tests
+
+# Docker
+./deploy.sh              # Deploy with build
+./deploy.sh --no-build   # Deploy without build
+sudo docker-compose logs -f    # View logs
+sudo docker-compose restart    # Restart
+sudo docker-compose down       # Stop
+
+# Database
+npx supabase db push     # Push migrations
+npx supabase db reset    # Reset database
+```
+
+---
+
+## 📦 Project Structure
+
+```
+habitflow/
+├── src/
+│   ├── app/              # Next.js app router pages
+│   │   ├── api/          # API routes
+│   │   ├── dashboard/    # Dashboard page
+│   │   ├── analytics/    # Analytics page
+│   │   ├── settings/     # Settings page
+│   │   └── debug-pwa/    # PWA debug page
+│   ├── components/       # React components
+│   │   ├── habits/       # Habit-related components
+│   │   ├── notifications/# Notification components
+│   │   ├── pwa/          # PWA components
+│   │   └── ui/           # UI components
+│   ├── lib/              # Utilities and API clients
+│   ├── hooks/            # Custom React hooks
+│   ├── store/            # Zustand state management
+│   ├── types/            # TypeScript types
+│   └── emails/           # Email templates
+├── public/
+│   ├── icons/            # PWA icons (192px, 512px)
+│   ├── manifest.json     # PWA manifest
+│   └── sw.js             # Service worker
+├── supabase/
+│   └── migrations/       # Database migrations
+├── docker-compose.yml    # Docker configuration
+├── Dockerfile            # Docker image
+├── deploy.sh             # Deployment script
+└── .env.local            # Environment variables
+```
+
+---
+
+## 🌐 Live Demo
+
+- **App**: [habit.palojori.in](https://habit.palojori.in)
+- **Debug**: [habit.palojori.in/debug-pwa](https://habit.palojori.in/debug-pwa)
+
+---
+
+## 📄 License
+
+MIT License - see LICENSE file for details

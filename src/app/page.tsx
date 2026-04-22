@@ -1,8 +1,33 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 export default function LandingPage() {
+  const { installState, triggerInstall, isInstalling } = usePWAInstall();
+  const [showInstallButton, setShowInstallButton] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    // Detect iOS
+    const ua = navigator.userAgent;
+    const ios = /iphone|ipad|ipod/i.test(ua) && !(window as any).MSStream;
+    setIsIOS(ios);
+
+    // Show install button if prompt is ready or on iOS
+    setShowInstallButton(installState === 'prompt-ready' || ios);
+  }, [installState]);
+
+  const handleInstall = async () => {
+    if (isIOS) {
+      // Scroll to CTA section with instructions
+      document.getElementById('install-instructions')?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      await triggerInstall();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-surface flex flex-col overflow-x-hidden">
       {/* TopAppBar */}
@@ -28,6 +53,16 @@ export default function LandingPage() {
             </a>
           </nav>
           <div className="flex items-center gap-4">
+            {showInstallButton && installState !== 'installed' && (
+              <button
+                onClick={handleInstall}
+                disabled={isInstalling}
+                className="hidden sm:flex items-center gap-2 bg-secondary-container text-on-secondary-container font-headline font-bold px-4 py-2 rounded-full hover:scale-105 transition-transform shadow-sm"
+              >
+                <span className="material-symbols-outlined text-sm">download</span>
+                {isInstalling ? 'Installing...' : 'Install App'}
+              </button>
+            )}
             <Link
               href="/login"
               className="hidden md:block font-headline font-bold text-primary hover:opacity-80 transition-opacity"
@@ -92,6 +127,16 @@ export default function LandingPage() {
                     arrow_forward
                   </span>
                 </Link>
+                {showInstallButton && installState !== 'installed' && (
+                  <button
+                    onClick={handleInstall}
+                    disabled={isInstalling}
+                    className="bg-secondary-container text-on-secondary-container px-8 py-4 rounded-full font-headline font-bold text-lg hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <span className="material-symbols-outlined">download</span>
+                    {isInstalling ? 'Installing...' : isIOS ? 'Install Guide' : 'Install App'}
+                  </button>
+                )}
                 <Link
                   href="/login"
                   className="bg-surface-variant/40 text-on-surface px-8 py-4 rounded-full font-headline font-bold text-lg border border-outline-variant/20 hover:bg-surface-container hover:scale-105 transition-all duration-300 backdrop-blur-md flex items-center justify-center"
@@ -450,6 +495,65 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* Install Instructions for iOS */}
+        {isIOS && (
+          <section id="install-instructions" className="py-16 px-6 bg-surface-container-low">
+            <div className="max-w-2xl mx-auto bg-surface rounded-3xl p-8 shadow-lg">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-primary text-2xl">
+                    install_mobile
+                  </span>
+                </div>
+                <h3 className="font-headline font-bold text-2xl text-on-surface">
+                  Install HabitFlow
+                </h3>
+              </div>
+              
+              <p className="font-body text-on-surface-variant mb-6">
+                Get the full app experience with offline support and notifications:
+              </p>
+
+              <ol className="space-y-4">
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    1
+                  </span>
+                  <p className="font-body text-sm text-on-surface-variant">
+                    Tap the{' '}
+                    <span className="inline-flex items-center gap-1 text-primary font-medium">
+                      Share
+                      <span className="material-symbols-outlined text-sm">ios_share</span>
+                    </span>{' '}
+                    button at the bottom of Safari.
+                  </p>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    2
+                  </span>
+                  <p className="font-body text-sm text-on-surface-variant">
+                    Scroll down and tap{' '}
+                    <span className="font-medium text-on-surface">"Add to Home Screen"</span>.
+                  </p>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    3
+                  </span>
+                  <p className="font-body text-sm text-on-surface-variant">
+                    Tap <span className="font-medium text-on-surface">"Add"</span> in the top right corner.
+                  </p>
+                </li>
+              </ol>
+
+              <div className="bg-surface-container-low rounded-xl p-4 text-xs text-on-surface-variant font-body mt-6">
+                💡 Once installed, you'll get push notifications and can use the app offline!
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* CTA */}
         <section className="py-24 px-6 bg-surface relative overflow-hidden">
