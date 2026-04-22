@@ -35,7 +35,10 @@ export default function EditHabitModal({ habit, onClose }: EditHabitModalProps) 
   const [targetPerDay, setTargetPerDay] = useState(habit.target_per_day);
   const [dailyLimit, setDailyLimit] = useState(habit.daily_limit ?? 5);
   const [reminderEnabled, setReminderEnabled] = useState(habit.reminder_enabled ?? false);
-  const [reminderTime, setReminderTime] = useState(habit.reminder_time ?? "09:00");
+  // Supabase returns TIME as HH:MM:SS — trim to HH:MM for <input type="time">
+  const [reminderTime, setReminderTime] = useState(
+    (habit.reminder_time ?? "09:00").slice(0, 5)
+  );
 
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -57,7 +60,8 @@ export default function EditHabitModal({ habit, onClose }: EditHabitModalProps) 
         target_per_day: targetPerDay,
         daily_limit: isBad ? dailyLimit : null,
         reminder_enabled: reminderEnabled,
-        reminder_time: reminderEnabled ? reminderTime : null,
+        // Supabase TIME columns store HH:MM:SS — append seconds so the cron query matches
+        reminder_time: reminderEnabled ? `${reminderTime}:00` : null,
       });
       onClose();
     } finally {

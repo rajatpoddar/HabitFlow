@@ -80,7 +80,7 @@ export default function PWAInstallBanner() {
           </button>
         </div>
 
-        <div className="flex gap-2 mt-3 ml-13">
+        <div className="flex gap-2 mt-3 ml-[52px]">
           <button
             onClick={handleInstall}
             disabled={isInstalling}
