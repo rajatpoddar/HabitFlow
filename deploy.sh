@@ -9,18 +9,32 @@ echo "🌿 HabitFlow Deployment Script"
 echo "================================"
 echo ""
 
-# Check if .env.local exists
-if [ ! -f ".env.local" ]; then
-    echo "❌ Error: .env.local file not found!"
-    echo "Please create .env.local with required environment variables."
+# Check if .env or .env.local exists
+if [ ! -f ".env" ] && [ ! -f ".env.local" ]; then
+    echo "❌ Error: Neither .env nor .env.local file found!"
+    echo "Please create .env with required environment variables."
     echo "See .env.example for reference."
     exit 1
 fi
 
+# Use .env if it exists, otherwise use .env.local
+ENV_FILE=".env"
+if [ ! -f ".env" ] && [ -f ".env.local" ]; then
+    echo "⚠️  Warning: .env not found, but .env.local exists."
+    echo "Docker Compose expects .env by default."
+    echo ""
+    echo "Creating symlink: .env -> .env.local"
+    ln -sf .env.local .env
+    ENV_FILE=".env.local"
+fi
+
+echo "📄 Using environment file: $ENV_FILE"
+echo ""
+
 # Check if VAPID keys are configured
-if ! grep -q "NEXT_PUBLIC_VAPID_PUBLIC_KEY=" .env.local || \
-   ! grep -q "VAPID_PRIVATE_KEY=" .env.local; then
-    echo "⚠️  Warning: VAPID keys not found in .env.local"
+if ! grep -q "NEXT_PUBLIC_VAPID_PUBLIC_KEY=" "$ENV_FILE" || \
+   ! grep -q "VAPID_PRIVATE_KEY=" "$ENV_FILE"; then
+    echo "⚠️  Warning: VAPID keys not found in $ENV_FILE"
     echo "Notifications will not work without VAPID keys."
     echo ""
     read -p "Continue anyway? (y/N): " -n 1 -r
@@ -74,6 +88,16 @@ else
     echo "⚠️  Health check failed. Container may still be starting..."
 fi
 
+# Verify environment variables
+echo ""
+echo "🔍 Verifying environment variables..."
+if sudo docker exec habitflow_app env | grep -q "NEXT_PUBLIC_VAPID_PUBLIC_KEY="; then
+    echo "✅ VAPID keys configured"
+else
+    echo "❌ VAPID keys NOT configured!"
+    echo "Check your .env file and rebuild."
+fi
+
 # Show logs
 echo ""
 echo "📋 Recent logs:"
@@ -91,4 +115,5 @@ echo "  View logs:    sudo docker-compose logs -f"
 echo "  Restart:      sudo docker-compose restart"
 echo "  Stop:         sudo docker-compose down"
 echo "  Shell access: sudo docker exec -it habitflow_app sh"
+echo "  Check env:    sudo docker exec habitflow_app env | grep VAPID"
 echo ""
