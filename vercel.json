@@ -3,6 +3,14 @@
     {
       "path": "/api/notifications/send",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/emails/streak-risk",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/emails/weekly-digest",
+      "schedule": "0 3 * * 0"
     }
   ]
 }
