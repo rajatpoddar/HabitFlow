@@ -12,6 +12,7 @@ import EditHabitModal from "@/components/habits/EditHabitModal";
 import ProgressRing from "@/components/ui/ProgressRing";
 import PlanBanner from "@/components/ui/PlanBanner";
 import NotificationPermissionBanner from "@/components/notifications/NotificationPermissionBanner";
+import PWAInstallBanner from "@/components/pwa/PWAInstallBanner";
 import type { Habit } from "@/types";
 
 export default function DashboardPage() {
@@ -155,6 +156,9 @@ export default function DashboardPage() {
           <>
             {/* Plan Banner */}
             <PlanBanner />
+
+            {/* PWA Install Banner */}
+            <PWAInstallBanner />
 
             {/* Notification Permission Banner */}
             <NotificationPermissionBanner />

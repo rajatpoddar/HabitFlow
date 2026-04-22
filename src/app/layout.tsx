@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import QueryProvider from "@/components/providers/QueryProvider";
+import PWAProvider from "@/components/providers/PWAProvider";
 
 export const metadata: Metadata = {
   title: "HabitFlow - Build Better Habits",
@@ -50,8 +51,9 @@ export default function RootLayout({
       </head>
       <body>
         <QueryProvider>
-          {children}
-          <Toaster
+          <PWAProvider>
+            {children}
+            <Toaster
           position="top-center"
           toastOptions={{
             style: {
@@ -77,6 +79,7 @@ export default function RootLayout({
             },
           }}
         />
+          </PWAProvider>
         </QueryProvider>
       </body>
     </html>

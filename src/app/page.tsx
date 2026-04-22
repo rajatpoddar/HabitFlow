@@ -46,7 +46,7 @@ export default function LandingPage() {
 
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative pt-24 pb-20 px-6 overflow-hidden">
+        <section className="relative pt-16 sm:pt-24 pb-16 sm:pb-20 px-6 overflow-hidden">
           <div className="absolute inset-0 bg-surface">
             <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-bl from-surface-container-low to-transparent opacity-50 rounded-bl-[10rem]" />
             <div className="absolute bottom-0 left-0 w-1/3 h-2/3 bg-gradient-to-tr from-surface-container to-transparent opacity-30 rounded-tr-[8rem]" />
@@ -59,7 +59,7 @@ export default function LandingPage() {
                 </span>
                 <span>Cultivate your daily routine</span>
               </div>
-              <h1 className="font-headline font-extrabold text-5xl md:text-7xl leading-tight text-on-surface tracking-tight">
+              <h1 className="font-headline font-extrabold text-4xl sm:text-5xl md:text-7xl leading-tight text-on-surface tracking-tight">
                 Build Better Habits,{" "}
                 <br />
                 <span className="text-primary relative inline-block">
@@ -103,43 +103,43 @@ export default function LandingPage() {
 
             {/* Hero Visual */}
             <div className="flex-1 w-full">
-              <div className="relative w-full aspect-[4/3] rounded-[3rem] overflow-hidden bg-surface-container-low shadow-2xl shadow-primary/10 flex items-center justify-center">
+              <div className="relative w-full rounded-[2rem] sm:rounded-[3rem] overflow-hidden bg-surface-container-low shadow-2xl shadow-primary/10 flex items-center justify-center pb-24 sm:pb-28 pt-8 sm:aspect-[4/3] sm:pb-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-surface-container-low to-surface-container" />
-                <div className="relative z-10 flex flex-col items-center gap-6 p-8">
-                  <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="material-symbols-outlined icon-fill text-primary text-6xl">
+                <div className="relative z-10 flex flex-col items-center gap-4 sm:gap-6 p-6 sm:p-8">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="material-symbols-outlined icon-fill text-primary text-5xl sm:text-6xl">
                       forest
                     </span>
                   </div>
                   <div className="text-center">
-                    <div className="font-headline font-black text-5xl text-primary">
+                    <div className="font-headline font-black text-4xl sm:text-5xl text-primary">
                       68%
                     </div>
                     <div className="font-body text-on-surface-variant text-sm mt-1">
                       Today&apos;s Progress
                     </div>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap justify-center gap-2">
                     {["Morning Run", "Read 30min", "Meditate"].map((h) => (
                       <div
                         key={h}
-                        className="bg-surface-container-lowest rounded-xl px-3 py-2 text-xs font-label font-medium text-on-surface flex items-center gap-1.5"
+                        className="bg-surface-container-lowest rounded-xl px-3 py-2 text-xs font-label font-medium text-on-surface flex items-center gap-1.5 whitespace-nowrap"
                       >
-                        <div className="w-2 h-2 rounded-full bg-primary" />
+                        <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
                         {h}
                       </div>
                     ))}
                   </div>
                 </div>
                 {/* Floating streak card */}
-                <div className="absolute bottom-6 left-6 right-6 bg-surface/80 backdrop-blur-2xl rounded-2xl p-4 border border-outline-variant/20 shadow-lg flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary-container flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined icon-fill text-on-primary text-2xl">
+                <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 bg-surface/80 backdrop-blur-2xl rounded-2xl p-3 sm:p-4 border border-outline-variant/20 shadow-lg flex items-center gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-primary to-primary-container flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined icon-fill text-on-primary text-xl sm:text-2xl">
                       local_fire_department
                     </span>
                   </div>
                   <div>
-                    <h3 className="font-headline font-bold text-on-surface">
+                    <h3 className="font-headline font-bold text-on-surface text-sm sm:text-base">
                       14 Day Streak
                     </h3>
                     <p className="font-body text-xs text-on-surface-variant">
@@ -454,8 +454,8 @@ export default function LandingPage() {
         {/* CTA */}
         <section className="py-24 px-6 bg-surface relative overflow-hidden">
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_#005237_0%,_transparent_60%)]" />
-          <div className="max-w-4xl mx-auto text-center space-y-8 relative z-10 bg-surface-container-low/50 backdrop-blur-xl p-12 rounded-[3rem] border border-outline-variant/30 shadow-2xl shadow-primary/5">
-            <h2 className="font-headline font-extrabold text-4xl md:text-5xl text-on-surface">
+          <div className="max-w-4xl mx-auto text-center space-y-8 relative z-10 bg-surface-container-low/50 backdrop-blur-xl p-8 sm:p-12 rounded-[2rem] sm:rounded-[3rem] border border-outline-variant/30 shadow-2xl shadow-primary/5">
+            <h2 className="font-headline font-extrabold text-3xl sm:text-4xl md:text-5xl text-on-surface">
               Ready to cultivate your best self?
             </h2>
             <p className="font-body text-xl text-on-surface-variant max-w-2xl mx-auto">
