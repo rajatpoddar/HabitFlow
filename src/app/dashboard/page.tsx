@@ -11,6 +11,7 @@ import AddHabitModal from "@/components/habits/AddHabitModal";
 import EditHabitModal from "@/components/habits/EditHabitModal";
 import ProgressRing from "@/components/ui/ProgressRing";
 import PlanBanner from "@/components/ui/PlanBanner";
+import NotificationPermissionBanner from "@/components/notifications/NotificationPermissionBanner";
 import type { Habit } from "@/types";
 
 export default function DashboardPage() {
@@ -154,6 +155,9 @@ export default function DashboardPage() {
           <>
             {/* Plan Banner */}
             <PlanBanner />
+
+            {/* Notification Permission Banner */}
+            <NotificationPermissionBanner />
 
             {/* Hero Bento */}
             <section className="grid grid-cols-3 gap-4">
