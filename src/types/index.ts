@@ -9,7 +9,7 @@ export interface User {
 }
 
 export type HabitType = "good" | "bad";
-export type HabitFrequency = "daily" | "weekly";
+export type HabitFrequency = "daily" | "weekdays" | "weekends" | "custom_days" | "times_per_week";
 
 export interface Habit {
   id: string;
@@ -25,6 +25,8 @@ export interface Habit {
   reminder_time?: string | null;
   reminder_enabled: boolean;
   daily_limit?: number | null;
+  custom_days?: number[] | null;
+  times_per_week?: number | null;
   created_at: string;
   updated_at: string;
 }

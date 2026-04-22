@@ -161,6 +161,35 @@ export async function updateBadHabitCount(
 
 // ─── Streak Calculation ───────────────────────────────────────────────────────
 
+/**
+ * Check if a habit is due today based on its frequency settings
+ */
+export function isHabitDueToday(habit: Habit, date: Date = new Date()): boolean {
+  const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+
+  switch (habit.frequency) {
+    case 'daily':
+      return true;
+
+    case 'weekdays':
+      return dayOfWeek >= 1 && dayOfWeek <= 5;
+
+    case 'weekends':
+      return dayOfWeek === 0 || dayOfWeek === 6;
+
+    case 'custom_days':
+      if (!habit.custom_days || habit.custom_days.length === 0) return true;
+      return habit.custom_days.includes(dayOfWeek);
+
+    case 'times_per_week':
+      // For times_per_week, the habit is always "due" - we just track completion count
+      return true;
+
+    default:
+      return true;
+  }
+}
+
 export function calculateStreak(logs: HabitLog[]): {
   current: number;
   longest: number;
