@@ -48,10 +48,16 @@ export default function NotificationPermissionBanner() {
       localStorage.setItem(BANNER_DISMISSED_KEY, 'true');
     } catch (error: any) {
       console.error('Error enabling notifications:', error);
+      
+      // More specific error messages
       if (error.message === 'Notification permission denied') {
         toast.error('Please allow notifications in your browser settings');
+      } else if (error.message?.includes('not configured')) {
+        toast.error('Notifications are not configured yet. Please try again later.');
+      } else if (error.message?.includes('not supported')) {
+        toast.error('Your browser does not support push notifications');
       } else {
-        toast.error('Failed to enable notifications');
+        toast.error(`Failed to enable notifications: ${error.message || 'Unknown error'}`);
       }
     } finally {
       setIsLoading(false);

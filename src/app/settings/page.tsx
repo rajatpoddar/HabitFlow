@@ -450,6 +450,17 @@ export default function SettingsPage() {
         {/* Account Actions */}
         <section className="space-y-3">
           <button
+            onClick={() => router.push("/debug-pwa")}
+            className="w-full bg-surface-container-high hover:bg-surface-variant text-on-surface font-headline font-bold text-base p-5 rounded-[1.5rem] flex items-center justify-between transition-all hover:scale-[1.01]"
+          >
+            <div className="flex items-center gap-4">
+              <span className="material-symbols-outlined text-primary">bug_report</span>
+              PWA Debug Info
+            </div>
+            <span className="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+          </button>
+
+          <button
             onClick={() => setShowChangePassword(true)}
             className="w-full bg-surface-container-high hover:bg-surface-variant text-on-surface font-headline font-bold text-base p-5 rounded-[1.5rem] flex items-center justify-between transition-all hover:scale-[1.01]"
           >

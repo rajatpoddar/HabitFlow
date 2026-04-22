@@ -29,15 +29,28 @@ export function usePWAInstall() {
       return;
     }
 
+    // Check if HTTPS (required for PWA except localhost)
+    const isSecure = window.location.protocol === 'https:' || 
+                     window.location.hostname === 'localhost' ||
+                     window.location.hostname === '127.0.0.1';
+    
+    if (!isSecure) {
+      console.warn('[PWA] Install requires HTTPS');
+      setInstallState('unsupported');
+      return;
+    }
+
     // Listen for the browser's install prompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
+      console.log('[PWA] Install prompt available');
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setInstallState('prompt-ready');
     };
 
     // Listen for successful install
     const handleAppInstalled = () => {
+      console.log('[PWA] App installed successfully');
       setInstallState('installed');
       setDeferredPrompt(null);
     };
@@ -45,9 +58,17 @@ export function usePWAInstall() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
+    // Timeout to check if prompt never fires (common on some browsers)
+    const timeout = setTimeout(() => {
+      if (installState === 'unsupported') {
+        console.log('[PWA] Install prompt not available, showing manual instructions');
+      }
+    }, 3000);
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      clearTimeout(timeout);
     };
   }, []);
 

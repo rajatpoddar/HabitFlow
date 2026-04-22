@@ -77,6 +77,12 @@ export async function subscribeToPush(userId: string): Promise<void> {
     throw new Error('Push notifications are not supported in this browser');
   }
 
+  // Validate VAPID key
+  if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.length === 0) {
+    console.error('VAPID public key is not configured');
+    throw new Error('Push notifications are not configured. Please contact support.');
+  }
+
   // Check notification permission
   let permission = Notification.permission;
 
@@ -89,8 +95,8 @@ export async function subscribeToPush(userId: string): Promise<void> {
   }
 
   try {
-    // Register service worker
-    const registration = await registerServiceWorker();
+    // Wait for service worker to be ready
+    const registration = await navigator.serviceWorker.ready;
 
     // Check if already subscribed
     let subscription = await registration.pushManager.getSubscription();
@@ -115,7 +121,9 @@ export async function subscribeToPush(userId: string): Promise<void> {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to save subscription to server');
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Server error:', errorData);
+      throw new Error(errorData.error || 'Failed to save subscription to server');
     }
   } catch (error) {
     console.error('Error subscribing to push:', error);
