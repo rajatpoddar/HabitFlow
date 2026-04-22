@@ -62,11 +62,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Check if user is banned or admin access
+  // Check if user is banned, onboarding status, or admin access
   if ((isProtected || isAdmin) && user) {
     const { data: profile } = await supabase
       .from("user_profiles")
-      .select("plan, is_banned, ban_reason")
+      .select("plan, is_banned, ban_reason, onboarding_completed")
       .eq("id", user.id)
       .single();
 
@@ -78,6 +78,15 @@ export async function middleware(request: NextRequest) {
         bannedUrl.searchParams.set("reason", profile.ban_reason);
       }
       return NextResponse.redirect(bannedUrl);
+    }
+
+    // Redirect to onboarding if not completed (except if already on onboarding page or API routes)
+    if (
+      !profile?.onboarding_completed &&
+      !pathname.startsWith("/onboarding") &&
+      !pathname.startsWith("/api/")
+    ) {
+      return NextResponse.redirect(new URL("/onboarding", request.url));
     }
 
     // Admin guard
