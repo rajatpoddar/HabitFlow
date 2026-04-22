@@ -12,6 +12,7 @@ function toUser(sbUser: any, profile?: any): User {
     email: sbUser.email,
     avatar: profile?.avatar_url || sbUser.user_metadata?.avatar_url,
     plan: profile?.plan ?? "free",
+    onboarding_completed: profile?.onboarding_completed ?? false,
     created_at: sbUser.created_at,
     updated_at: sbUser.updated_at || sbUser.created_at,
   };

@@ -47,14 +47,23 @@ export default function OnboardingPage() {
 
   const handleSkip = async () => {
     try {
-      await fetch('/api/onboarding/complete', {
+      const response = await fetch('/api/onboarding/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ habits: [], reminderTimes: {} }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to skip onboarding');
+      }
+
+      // Refresh user state to get updated onboarding_completed flag
+      await checkAuth();
+      
       router.push('/dashboard');
     } catch (error) {
       console.error('Error skipping onboarding:', error);
+      // Try to navigate anyway
       router.push('/dashboard');
     }
   };
@@ -129,7 +138,7 @@ export default function OnboardingPage() {
         };
       });
 
-      await fetch('/api/onboarding/complete', {
+      const response = await fetch('/api/onboarding/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -137,6 +146,13 @@ export default function OnboardingPage() {
           reminderTimes,
         }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to complete onboarding');
+      }
+
+      // Refresh user state to get updated onboarding_completed flag
+      await checkAuth();
 
       toast.success('Welcome to HabitFlow! 🌿');
       router.push('/dashboard');

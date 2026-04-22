@@ -4,6 +4,7 @@ export interface User {
   email: string;
   avatar?: string;
   plan?: "free" | "pro" | "admin";
+  onboarding_completed?: boolean;
   created_at: string;
   updated_at: string;
 }
