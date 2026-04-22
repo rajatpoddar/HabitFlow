@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import Razorpay from "razorpay";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+// Instantiated lazily inside the handler so missing env vars during
+// Docker build-time static analysis don't throw at module load.
+function getRazorpay() {
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID!,
+    key_secret: process.env.RAZORPAY_KEY_SECRET!,
+  });
+}
 
 // ₹499/month in paise (100 paise = ₹1)
 const PLAN_AMOUNT = 49900;
@@ -38,7 +42,7 @@ export async function POST(request: NextRequest) {
     // Create a Razorpay subscription
     const planId = process.env.RAZORPAY_PLAN_ID!;
 
-    const subscription = await razorpay.subscriptions.create({
+    const subscription = await getRazorpay().subscriptions.create({
       plan_id: planId,
       customer_notify: 1,
       quantity: 1,

@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import Razorpay from "razorpay";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+function getRazorpay() {
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID!,
+    key_secret: process.env.RAZORPAY_KEY_SECRET!,
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Cancel at end of current billing cycle (cancel_at_cycle_end = 1)
-    await razorpay.subscriptions.cancel(profile.stripe_subscription_id, true);
+    await getRazorpay().subscriptions.cancel(profile.stripe_subscription_id, true);
 
     await supabase
       .from("user_profiles")
