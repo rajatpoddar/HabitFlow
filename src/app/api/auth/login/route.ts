@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { loginSchema } from "@/lib/validations";
-import { rateLimit, AUTH_RATE_LIMIT, getClientIp } from "@/lib/rate-limit";
+import { checkAuthRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = rateLimit(`login:${ip}`, AUTH_RATE_LIMIT);
-  if (!rl.success) {
+  const { success } = await checkAuthRateLimit(`login:${ip}`);
+  if (!success) {
     return NextResponse.json(
       { error: "Too many login attempts. Please wait before trying again." },
-      {
-        status: 429,
-        headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
-      }
+      { status: 429 }
     );
   }
 

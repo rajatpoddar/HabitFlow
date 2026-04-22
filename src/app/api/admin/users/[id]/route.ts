@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase-server";
 import { requireAdmin } from "@/lib/api/admin";
 import { banUserSchema, updateUserPlanSchema } from "@/lib/validations";
-import { rateLimit, ADMIN_RATE_LIMIT, getClientIp } from "@/lib/rate-limit";
+import { checkAdminRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // PATCH /api/admin/users/[id] — ban, unban, or change plan
 export async function PATCH(
@@ -10,8 +10,8 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   const ip = getClientIp(request);
-  const rl = rateLimit(`admin-patch:${ip}`, ADMIN_RATE_LIMIT);
-  if (!rl.success) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  const { success } = await checkAdminRateLimit(`admin-patch:${ip}`);
+  if (!success) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 
   const sessionClient = createSupabaseServerClient();
   const admin = await requireAdmin(sessionClient);
@@ -101,8 +101,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const ip = getClientIp(request);
-  const rl = rateLimit(`admin-delete:${ip}`, ADMIN_RATE_LIMIT);
-  if (!rl.success) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  const { success } = await checkAdminRateLimit(`admin-delete:${ip}`);
+  if (!success) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 
   const sessionClient = createSupabaseServerClient();
   const admin = await requireAdmin(sessionClient);

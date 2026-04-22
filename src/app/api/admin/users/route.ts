@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase-server";
 import { requireAdmin } from "@/lib/api/admin";
-import { rateLimit, ADMIN_RATE_LIMIT, getClientIp } from "@/lib/rate-limit";
+import { checkAdminRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = rateLimit(`admin-users:${ip}`, ADMIN_RATE_LIMIT);
-  if (!rl.success) {
+  const { success } = await checkAdminRateLimit(`admin-users:${ip}`);
+  if (!success) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
 

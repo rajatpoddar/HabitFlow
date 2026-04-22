@@ -25,10 +25,17 @@ A production-ready habit tracking SaaS built with Next.js 14, Supabase, and Zust
 - **Analytics** — Weekly charts, heatmaps, streaks, completion rates
 - **AI Insights** — Statistical analysis of your habit patterns
 - **Daily Journal** — 3-prompt structured journaling
-- **Wake-up Alarms** — Browser-based alarm scheduling
+- **Push Notifications** — Web push reminders for habits (works when tab is closed)
+- **Email System** — Welcome emails, streak alerts, weekly digests, milestone celebrations
+- **Onboarding Flow** — 4-step guided setup for new users
+- **Habit Templates** — 24+ curated templates across 5 categories
+- **Flexible Scheduling** — Daily, weekdays, weekends, custom days, or X times per week
+- **Habit Correlations** — Discover which habits you complete together
+- **Streak Freeze** — Protect your streaks with freeze tokens
 - **Admin Dashboard** — User management, analytics, ban/unban
 - **Plan System** — Free (5 habits) / Pro (unlimited) tiers
 - **Security** — RLS, JWT, rate limiting, input validation, security headers
+- **PWA Support** — Install as a mobile app
 
 ---
 
@@ -57,8 +64,19 @@ Run migrations in order in the Supabase SQL Editor:
 1. `supabase/migrations/001_habitflow_schema.sql`
 2. `supabase/migrations/002_enhancements.sql`
 3. `supabase/migrations/003_saas_upgrade.sql`
+4. `supabase/migrations/004_security_fixes.sql`
+5. `supabase/migrations/005_performance.sql`
+6. `supabase/migrations/006_push_notifications.sql`
 
-### 4. Run locally
+### 4. Generate VAPID keys for push notifications
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Add the keys to your `.env.local` file.
+
+### 5. Run locally
 
 ```bash
 npm run dev
@@ -170,6 +188,46 @@ npm run test          # Run all tests once
 npm run test:watch    # Watch mode
 npm run test:coverage # With coverage report
 ```
+
+---
+
+## Sprint 2 Setup
+
+### Push Notifications
+
+1. Generate VAPID keys:
+```bash
+npx web-push generate-vapid-keys
+```
+
+2. Add to `.env.local`:
+```
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-public-key
+VAPID_PRIVATE_KEY=your-private-key
+VAPID_SUBJECT=mailto:support@habitflow.app
+```
+
+### Email System (Resend)
+
+1. Sign up at [resend.com](https://resend.com)
+2. Add to `.env.local`:
+```
+RESEND_API_KEY=re_...
+EMAIL_FROM=HabitFlow <hello@habitflow.app>
+```
+
+### Rate Limiting (Upstash Redis)
+
+1. Sign up at [console.upstash.com](https://console.upstash.com)
+2. Create a Redis database and add to `.env.local`:
+```
+UPSTASH_REDIS_REST_URL=https://...upstash.io
+UPSTASH_REDIS_REST_TOKEN=...
+```
+
+### Cron Jobs
+
+Set `CRON_SECRET` in `.env.local` to protect cron endpoints.
 
 ---
 

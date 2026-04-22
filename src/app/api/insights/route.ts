@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { rateLimit, API_RATE_LIMIT, getClientIp } from "@/lib/rate-limit";
+import { checkApiRateLimit, getClientIp } from "@/lib/rate-limit";
 import { format, subDays, startOfWeek } from "date-fns";
 
 interface InsightItem {
@@ -208,8 +208,8 @@ async function generateInsights(
 
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = rateLimit(`insights:${ip}`, API_RATE_LIMIT);
-  if (!rl.success) {
+  const { success } = await checkApiRateLimit(`insights:${ip}`);
+  if (!success) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
 

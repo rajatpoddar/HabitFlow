@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { signupSchema } from "@/lib/validations";
-import { rateLimit, AUTH_RATE_LIMIT, getClientIp } from "@/lib/rate-limit";
+import { checkAuthRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   // Rate limiting
   const ip = getClientIp(request);
-  const rl = rateLimit(`signup:${ip}`, AUTH_RATE_LIMIT);
-  if (!rl.success) {
+  const { success } = await checkAuthRateLimit(`signup:${ip}`);
+  if (!success) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
-      {
-        status: 429,
-        headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
-      }
+      { status: 429 }
     );
   }
 

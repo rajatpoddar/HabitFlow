@@ -1,65 +1,100 @@
 /**
- * Simple in-memory rate limiter for API routes.
- * For production at scale, replace with Redis (Upstash).
+ * Serverless-safe rate limiter using Upstash Redis
+ * Falls back to allowing all requests if Upstash is not configured (local dev)
  */
 
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
+// Check if Upstash is configured
+const isUpstashConfigured =
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN;
+
+let redis: Redis | null = null;
+let authRateLimit: Ratelimit | null = null;
+let apiRateLimit: Ratelimit | null = null;
+let adminRateLimit: Ratelimit | null = null;
+
+if (isUpstashConfigured) {
+  redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL!,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  });
+
+  authRateLimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(5, '60 s'),
+    analytics: true,
+    prefix: 'habitflow:auth',
+  });
+
+  apiRateLimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(60, '60 s'),
+    analytics: true,
+    prefix: 'habitflow:api',
+  });
+
+  adminRateLimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(30, '60 s'),
+    analytics: true,
+    prefix: 'habitflow:admin',
+  });
 }
 
-const store = new Map<string, RateLimitEntry>();
-
-interface RateLimitOptions {
-  /** Max requests allowed in the window */
-  limit: number;
-  /** Window duration in seconds */
-  windowSec: number;
-}
-
-interface RateLimitResult {
-  success: boolean;
-  remaining: number;
-  resetAt: number;
-}
-
-export function rateLimit(
-  identifier: string,
-  options: RateLimitOptions = { limit: 20, windowSec: 60 }
-): RateLimitResult {
-  const now = Date.now();
-  const key = identifier;
-  const entry = store.get(key);
-
-  if (!entry || now > entry.resetAt) {
-    // New window
-    const resetAt = now + options.windowSec * 1000;
-    store.set(key, { count: 1, resetAt });
-    return { success: true, remaining: options.limit - 1, resetAt };
+/**
+ * Rate limit for auth endpoints (5 requests per minute)
+ */
+export async function checkAuthRateLimit(
+  identifier: string
+): Promise<{ success: boolean; remaining: number }> {
+  if (!authRateLimit) {
+    console.warn('Upstash not configured, skipping auth rate limit');
+    return { success: true, remaining: 999 };
   }
 
-  if (entry.count >= options.limit) {
-    return { success: false, remaining: 0, resetAt: entry.resetAt };
-  }
-
-  entry.count++;
-  return {
-    success: true,
-    remaining: options.limit - entry.count,
-    resetAt: entry.resetAt,
-  };
+  const { success, remaining } = await authRateLimit.limit(identifier);
+  return { success, remaining };
 }
 
-/** Stricter limits for auth endpoints */
-export const AUTH_RATE_LIMIT: RateLimitOptions = { limit: 5, windowSec: 60 };
-/** Standard API limit */
-export const API_RATE_LIMIT: RateLimitOptions = { limit: 60, windowSec: 60 };
-/** Admin operations */
-export const ADMIN_RATE_LIMIT: RateLimitOptions = { limit: 30, windowSec: 60 };
+/**
+ * Rate limit for API endpoints (60 requests per minute)
+ */
+export async function checkApiRateLimit(
+  identifier: string
+): Promise<{ success: boolean; remaining: number }> {
+  if (!apiRateLimit) {
+    console.warn('Upstash not configured, skipping API rate limit');
+    return { success: true, remaining: 999 };
+  }
 
-/** Helper to get client IP from request */
+  const { success, remaining } = await apiRateLimit.limit(identifier);
+  return { success, remaining };
+}
+
+/**
+ * Rate limit for admin endpoints (30 requests per minute)
+ */
+export async function checkAdminRateLimit(
+  identifier: string
+): Promise<{ success: boolean; remaining: number }> {
+  if (!adminRateLimit) {
+    console.warn('Upstash not configured, skipping admin rate limit');
+    return { success: true, remaining: 999 };
+  }
+
+  const { success, remaining } = await adminRateLimit.limit(identifier);
+  return { success, remaining };
+}
+
+/**
+ * Helper to get client IP from request
+ */
 export function getClientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  return "unknown";
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) return forwarded.split(',')[0].trim();
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp;
+  return 'unknown';
 }

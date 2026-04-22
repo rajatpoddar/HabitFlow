@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { createHabitSchema } from "@/lib/validations";
-import { rateLimit, API_RATE_LIMIT, getClientIp } from "@/lib/rate-limit";
+import { checkApiRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const FREE_HABIT_LIMIT = 5;
 
@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = rateLimit(`habits:${ip}`, API_RATE_LIMIT);
-  if (!rl.success) {
+  const { success } = await checkApiRateLimit(`habits:${ip}`);
+  if (!success) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
