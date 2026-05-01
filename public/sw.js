@@ -100,15 +100,17 @@ self.addEventListener('notificationclick', (event) => {
       clients
         .matchAll({ type: 'window', includeUncontrolled: true })
         .then((clientList) => {
+          const targetUrl = new URL(url, self.location.origin).href;
+          
           // Check if there's already a window open
           for (const client of clientList) {
-            if (client.url.includes(url) && 'focus' in client) {
+            if (client.url === targetUrl && 'focus' in client) {
               return client.focus();
             }
           }
           // Open new window if none exists
           if (clients.openWindow) {
-            return clients.openWindow(url);
+            return clients.openWindow(targetUrl);
           }
         })
     );
