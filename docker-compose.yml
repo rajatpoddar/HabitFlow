@@ -19,6 +19,7 @@ services:
       # Runtime secrets — never baked into image
       NODE_ENV: production
       PORT: 3847
+      TZ: ${TZ:-UTC}
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://habit.palojori.in}
@@ -37,3 +38,20 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+
+  cron:
+    image: alpine:latest
+    container_name: habitflow_cron
+    restart: unless-stopped
+    depends_on:
+      - habitflow
+    environment:
+      - CRON_SECRET=${CRON_SECRET}
+      - TZ=${TZ:-UTC}
+    command: >
+      /bin/sh -c '
+      apk add --no-cache curl tzdata &&
+      echo "* * * * * curl -s -X POST http://habitflow:3847/api/notifications/send -H \"Authorization: Bearer $$CRON_SECRET\"" > /etc/crontabs/root &&
+      echo "0 20 * * * curl -s -X POST http://habitflow:3847/api/emails/streak-risk -H \"Authorization: Bearer $$CRON_SECRET\"" >> /etc/crontabs/root &&
+      echo "0 9 * * 0 curl -s -X POST http://habitflow:3847/api/emails/weekly-digest -H \"Authorization: Bearer $$CRON_SECRET\"" >> /etc/crontabs/root &&
+      crond -f -l 2'

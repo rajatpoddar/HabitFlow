@@ -27,25 +27,23 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Get current time window — query ±1 minute to handle cron drift
-    // Format as HH:MM:SS to match Supabase TIME column
+    // Get current time window
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
 
-    // Build a window: current minute :00 to :59
-    const windowStart = `${pad(now.getHours())}:${pad(now.getMinutes())}:00`;
-    const windowEnd   = `${pad(now.getHours())}:${pad(now.getMinutes())}:59`;
+    // Build a window prefix: current minute HH:MM
+    const timePrefix = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
-    console.log(`[notifications/send] Querying habits for time window: ${windowStart} – ${windowEnd}`);
+    console.log(`[notifications/send] Querying habits for time: ${timePrefix} (Server TZ Offset: ${now.getTimezoneOffset()})`);
 
     // Find all habits with reminders enabled for this time
+    // Using .like matches both '09:30' and '09:30:00'
     const { data: habits, error: habitsError } = await supabase
       .from('habits')
       .select('id, name, user_id, reminder_time, icon')
       .eq('reminder_enabled', true)
       .eq('is_active', true)
-      .gte('reminder_time', windowStart)
-      .lte('reminder_time', windowEnd);
+      .like('reminder_time', `${timePrefix}%`);
 
     if (habitsError) {
       console.error('Error fetching habits:', habitsError);
@@ -59,7 +57,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'No habits to notify',
-        window: `${windowStart} – ${windowEnd}`,
+        window: timePrefix,
         sent: 0,
       });
     }

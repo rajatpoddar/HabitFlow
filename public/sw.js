@@ -129,3 +129,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
+
+// Add this to the very bottom of your public/sw.js file
+self.addEventListener('fetch', (event) => {
+  // Dummy fetch handler to satisfy Chrome's PWA installability criteria.
+  // PWA requires this to prove it can intercept network requests.
+});
