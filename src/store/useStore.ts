@@ -35,6 +35,8 @@ interface AppState {
     age: number;
     location: string;
     mobile_number: string;
+    occupation: string;
+    bio: string;
     avatar_url: string;
   }>) => Promise<void>;
   changePassword: (newPassword: string) => Promise<void>;

@@ -9,6 +9,8 @@ export interface User {
   age?: number;
   location?: string;
   mobile_number?: string;
+  occupation?: string;
+  bio?: string;
   created_at: string;
   updated_at: string;
 }

@@ -17,6 +17,8 @@ function toUser(sbUser: any, profile?: any): User {
     age: profile?.age,
     location: profile?.location,
     mobile_number: profile?.mobile_number,
+    occupation: profile?.occupation,
+    bio: profile?.bio,
     created_at: sbUser.created_at,
     updated_at: sbUser.updated_at || sbUser.created_at,
   };
@@ -83,6 +85,8 @@ export async function updateProfile(
     age: number;
     location: string;
     mobile_number: string;
+    occupation: string;
+    bio: string;
     avatar_url: string;
   }>
 ): Promise<User> {
@@ -101,6 +105,8 @@ export async function updateProfile(
   if (data.age !== undefined) profileUpdates.age = data.age;
   if (data.location !== undefined) profileUpdates.location = data.location;
   if (data.mobile_number !== undefined) profileUpdates.mobile_number = data.mobile_number;
+  if (data.occupation !== undefined) profileUpdates.occupation = data.occupation;
+  if (data.bio !== undefined) profileUpdates.bio = data.bio;
   if (data.avatar_url !== undefined) profileUpdates.avatar_url = data.avatar_url;
 
   if (Object.keys(profileUpdates).length > 0) {
