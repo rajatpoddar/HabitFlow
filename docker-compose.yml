@@ -22,7 +22,7 @@ services:
       NODE_ENV: production
       PORT: 3847
       TZ: ${TZ:-UTC}
-      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@db:5432/habitflow}
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-habitflow}
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://habit.palojori.in}
