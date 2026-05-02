@@ -51,7 +51,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-habitflow}
     ports:
-      - "5433:5432"
+      - "5438:5432"
     volumes:
       - habitflow_data:/var/lib/postgresql/data
       # Automatically run migrations on startup
