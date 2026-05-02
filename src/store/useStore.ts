@@ -1,11 +1,8 @@
 import { create } from "zustand";
 import type { User, Habit, HabitLog, JournalEntry, Alarm, InsightItem } from "@/types";
-import * as authApi from "@/lib/api/auth";
-import * as habitsApi from "@/lib/api/habits";
-import * as journalApi from "@/lib/api/journal";
-import * as alarmsApi from "@/lib/api/alarms";
 import toast from "react-hot-toast";
-import { getSession } from "next-auth/react";
+import { format } from "date-fns";
+import { getSession, signOut } from "next-auth/react";
 
 const FREE_HABIT_LIMIT = 5;
 
@@ -89,8 +86,9 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const session = await getSession();
       if (session?.user) {
-        const user = await authApi.getCurrentUser();
-        set({ user, isLoading: false });
+        const res = await fetch("/api/auth/me");
+        const data = await res.json();
+        set({ user: data.user, isLoading: false });
       } else {
         set({ user: null, isLoading: false });
       }
@@ -100,7 +98,7 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   logout: async () => {
-    await authApi.logout();
+    await signOut({ redirect: false });
     set({
       user: null,
       habits: [],
@@ -112,14 +110,20 @@ export const useStore = create<AppState>((set, get) => ({
       _cache: {},
     });
     toast.success("Logged out");
+    window.location.href = "/login";
   },
 
   updateProfile: async (data) => {
     const { user } = get();
     if (!user) return;
     try {
-      const updated = await authApi.updateProfile(user.id, data);
-      set({ user: updated });
+      const res = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (result.error) throw new Error(result.error);
+      set({ user: result.user });
       toast.success("Profile updated!");
     } catch (err: any) {
       toast.error(err.message || "Failed to update profile");
@@ -131,14 +135,10 @@ export const useStore = create<AppState>((set, get) => ({
     const { user } = get();
     if (!user) return;
     try {
-      await authApi.deleteAccount(user.id);
-      set({
-        user: null,
-        habits: [],
-        logs: [],
-        journalEntries: [],
-        alarms: [],
-      });
+      await fetch("/api/auth/profile", { method: "DELETE" });
+      await signOut({ redirect: false });
+      set({ user: null, habits: [], logs: [], journalEntries: [], alarms: [] });
+      window.location.href = "/login";
     } catch (err: any) {
       toast.error(err.message || "Failed to delete account");
       throw err;
@@ -151,40 +151,49 @@ export const useStore = create<AppState>((set, get) => ({
     const CACHE_TTL = 2 * 60 * 1000;
     if (_cache["habits"] && Date.now() - _cache["habits"] < CACHE_TTL) return;
     try {
-      const habits = await habitsApi.getHabits(user.id);
-      set({ habits, _cache: { ...get()._cache, habits: Date.now() } });
+      const res = await fetch("/api/habits");
+      const data = await res.json();
+      set({ habits: data.habits || [], _cache: { ...get()._cache, habits: Date.now() } });
     } catch {
       toast.error("Failed to load habits");
     }
   },
 
   createHabit: async (data) => {
-    const { user, canAddHabit } = get();
-    if (!user) return;
-
+    const { canAddHabit } = get();
     if (!canAddHabit()) {
       toast.error(`Free plan limit reached.`);
       throw new Error("PLAN_LIMIT_EXCEEDED");
     }
 
     try {
-      const habit = await habitsApi.createHabit({ ...data, user_id: user.id });
+      const res = await fetch("/api/habits", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (result.error) throw new Error(result.error);
       set((s) => ({
-        habits: [...s.habits, habit],
+        habits: [...s.habits, result.habit],
         _cache: { ...s._cache, habits: 0 },
       }));
       toast.success("Habit created! 🌱");
     } catch (err: any) {
-      toast.error("Failed to create habit");
+      toast.error(err.message || "Failed to create habit");
       throw err;
     }
   },
 
   updateHabit: async (id, data) => {
     try {
-      const habit = await habitsApi.updateHabit(id, data);
+      const res = await fetch(`/api/habits/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (result.error) throw new Error(result.error);
       set((s) => ({
-        habits: s.habits.map((h) => (h.id === id ? habit : h)),
+        habits: s.habits.map((h) => (h.id === id ? result.habit : h)),
       }));
     } catch (err: any) {
       toast.error("Failed to update habit");
@@ -194,7 +203,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   deleteHabit: async (id) => {
     try {
-      await habitsApi.deleteHabit(id);
+      await fetch(`/api/habits/${id}`, { method: "DELETE" });
       set((s) => ({ habits: s.habits.filter((h) => h.id !== id) }));
       toast.success("Habit removed");
     } catch {
@@ -209,8 +218,12 @@ export const useStore = create<AppState>((set, get) => ({
     const CACHE_TTL = 2 * 60 * 1000;
     if (_cache[cacheKey] && Date.now() - _cache[cacheKey] < CACHE_TTL) return;
     try {
-      const logs = await habitsApi.getLogsForUser(user.id, startDate, endDate);
-      set({ logs, _cache: { ...get()._cache, [cacheKey]: Date.now() } });
+      const params = new URLSearchParams();
+      if (startDate) params.set("startDate", startDate);
+      if (endDate) params.set("endDate", endDate);
+      const res = await fetch(`/api/logs?${params.toString()}`);
+      const data = await res.json();
+      set({ logs: data.logs || [], _cache: { ...get()._cache, [cacheKey]: Date.now() } });
     } catch {
       toast.error("Failed to load logs");
     }
@@ -218,18 +231,20 @@ export const useStore = create<AppState>((set, get) => ({
 
   toggleHabitLog: async (habitId, date) => {
     try {
-      const result = await habitsApi.toggleHabitLog(habitId, date, null);
+      const res = await fetch("/api/logs/toggle", {
+        method: "POST",
+        body: JSON.stringify({ habitId, date: date.toISOString() }),
+      });
+      const result = await res.json();
       set((s) => {
-        if (result) {
-          const exists = s.logs.find(l => l.id === result.id);
+        if (result.log) {
+          const exists = s.logs.find(l => l.id === result.log.id);
           return {
-            logs: exists ? s.logs.map(l => l.id === result.id ? result : l) : [...s.logs, result]
+            logs: exists ? s.logs.map(l => l.id === result.log.id ? result.log : l) : [...s.logs, result.log]
           };
         } else {
-          // It was a delete
-          return {
-            logs: s.logs.filter(l => !(l.habit_id === habitId && l.date === habitsApi.format(date, "yyyy-MM-dd")))
-          };
+          const dateStr = format(date, "yyyy-MM-dd");
+          return { logs: s.logs.filter(l => !(l.habit_id === habitId && l.date === dateStr)) };
         }
       });
     } catch {
@@ -239,11 +254,15 @@ export const useStore = create<AppState>((set, get) => ({
 
   updateBadHabitCount: async (habitId, date, delta) => {
     try {
-      const result = await habitsApi.updateBadHabitCount(habitId, date, delta);
+      const res = await fetch("/api/logs/count", {
+        method: "POST",
+        body: JSON.stringify({ habitId, date: date.toISOString(), delta }),
+      });
+      const result = await res.json();
       set((s) => {
-        const exists = s.logs.find(l => l.id === result.id);
+        const exists = s.logs.find(l => l.id === result.log.id);
         return {
-          logs: exists ? s.logs.map(l => l.id === result.id ? result : l) : [...s.logs, result]
+          logs: exists ? s.logs.map(l => l.id === result.log.id ? result.log : l) : [...s.logs, result.log]
         };
       });
     } catch {
@@ -252,27 +271,28 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   fetchJournalEntries: async () => {
-    const { user } = get();
-    if (!user) return;
     try {
-      const entries = await journalApi.getJournalEntries(user.id);
-      set({ journalEntries: entries });
+      const res = await fetch("/api/journal");
+      const data = await res.json();
+      set({ journalEntries: data.entries || [] });
     } catch {
       toast.error("Failed to load journal");
     }
   },
 
   upsertJournalEntry: async (date, data) => {
-    const { user } = get();
-    if (!user) return;
     try {
-      const entry = await journalApi.upsertJournalEntry(user.id, date, data);
+      const res = await fetch("/api/journal", {
+        method: "POST",
+        body: JSON.stringify({ date: date.toISOString(), ...data }),
+      });
+      const result = await res.json();
       set((s) => {
-        const exists = s.journalEntries.find((e) => e.id === entry.id);
+        const exists = s.journalEntries.find((e) => e.id === result.entry.id);
         return {
           journalEntries: exists
-            ? s.journalEntries.map((e) => (e.id === entry.id ? entry : e))
-            : [entry, ...s.journalEntries],
+            ? s.journalEntries.map((e) => (e.id === result.entry.id ? result.entry : e))
+            : [result.entry, ...s.journalEntries],
         };
       });
       toast.success("Journal saved ✨");
@@ -283,30 +303,28 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   fetchAlarms: async () => {
-    const { user } = get();
-    if (!user) return;
     try {
-      const alarms = await alarmsApi.getAlarms(user.id);
-      set({ alarms });
+      const res = await fetch("/api/alarms");
+      const data = await res.json();
+      set({ alarms: data.alarms || [] });
     } catch {
       toast.error("Failed to load alarms");
     }
   },
 
   upsertAlarm: async (alarm) => {
-    const { user } = get();
-    if (!user) return;
     try {
-      const saved = await alarmsApi.upsertAlarm(user.id, {
-        ...alarm,
-        user_id: user.id,
+      const res = await fetch("/api/alarms", {
+        method: "POST",
+        body: JSON.stringify(alarm),
       });
+      const result = await res.json();
       set((s) => {
-        const exists = s.alarms.find((a) => a.id === saved.id);
+        const exists = s.alarms.find((a) => a.id === result.alarm.id);
         return {
           alarms: exists
-            ? s.alarms.map((a) => (a.id === saved.id ? saved : a))
-            : [...s.alarms, saved],
+            ? s.alarms.map((a) => (a.id === result.alarm.id ? result.alarm : a))
+            : [...s.alarms, result.alarm],
         };
       });
       toast.success("Alarm saved ⏰");
@@ -317,7 +335,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   deleteAlarm: async (id) => {
     try {
-      await alarmsApi.deleteAlarm(id);
+      await fetch(`/api/alarms/${id}`, { method: "DELETE" });
       set((s) => ({ alarms: s.alarms.filter((a) => a.id !== id) }));
     } catch {
       toast.error("Failed to delete alarm");
@@ -326,9 +344,13 @@ export const useStore = create<AppState>((set, get) => ({
 
   toggleAlarm: async (id, enabled) => {
     try {
-      const updated = await alarmsApi.toggleAlarm(id, enabled);
+      const res = await fetch(`/api/alarms/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ enabled }),
+      });
+      const result = await res.json();
       set((s) => ({
-        alarms: s.alarms.map((a) => (a.id === id ? updated : a)),
+        alarms: s.alarms.map((a) => (a.id === id ? result.alarm : a)),
       }));
     } catch {
       toast.error("Failed to update alarm");
@@ -336,12 +358,9 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   fetchInsights: async () => {
-    const { user } = get();
-    if (!user) return;
     set({ insightsLoading: true });
     try {
       const res = await fetch("/api/insights");
-      if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       set({
         insights: data.insights ?? [],

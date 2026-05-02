@@ -16,7 +16,7 @@ import PWAInstallBanner from "@/components/pwa/PWAInstallBanner";
 import HabitForest from "@/components/habits/HabitForest";
 import Leaderboard from "@/components/social/Leaderboard";
 import FriendRequestNotification from "@/components/social/FriendRequestNotification";
-import { calculateStreak } from "@/lib/api/habits";
+import { calculateStreak } from "@/lib/utils/habits";
 import type { Habit } from "@/types";
 
 export default function DashboardPage() {

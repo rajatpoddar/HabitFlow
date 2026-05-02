@@ -1,7 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toggleHabitLog } from "@/lib/api/habits";
-import { HabitLog, LogStatus } from "@/types";
-import { format } from "date-fns";
+const toggleHabitLog = async (habitId: string, date: Date) => {
+  const res = await fetch("/api/logs/toggle", {
+    method: "POST",
+    body: JSON.stringify({ habitId, date: date.toISOString() }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.log;
+};
 
 export function useHabitToggle() {
   const queryClient = useQueryClient();
@@ -10,12 +16,11 @@ export function useHabitToggle() {
     mutationFn: ({
       habitId,
       date,
-      currentStatus,
     }: {
       habitId: string;
       date: Date;
       currentStatus: LogStatus | null;
-    }) => toggleHabitLog(habitId, date, currentStatus),
+    }) => toggleHabitLog(habitId, date),
     
     // When mutate is called:
     onMutate: async ({ habitId, date, currentStatus }) => {

@@ -8,7 +8,6 @@ import BottomNav from "@/components/ui/BottomNav";
 import TopBar from "@/components/ui/TopBar";
 import Toggle from "@/components/ui/Toggle";
 import toast from "react-hot-toast";
-import * as authApi from "@/lib/api/auth";
 import { changePasswordSchema } from "@/lib/validations";
 import {
   requestNotificationPermission,
@@ -18,8 +17,20 @@ import {
   cancelAllNotifications,
   scheduleHabitReminders,
 } from "@/lib/notifications";
-import { calculateStreak } from "@/lib/api/habits";
-import { uploadAvatar } from "@/lib/api/storage";
+
+const uploadAvatar = async (userId: string, file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch("/api/storage/avatar", {
+    method: "POST",
+    body: formData,
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.url;
+};
+
+import { calculateStreak } from "@/lib/utils/habits";
 import type { Alarm } from "@/types";
 
 export default function SettingsPage() {
