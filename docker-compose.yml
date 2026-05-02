@@ -61,10 +61,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-volumes:
-  habitflow_data:
-
   cron:
     image: alpine:latest
     container_name: habitflow_cron
@@ -81,3 +77,6 @@ volumes:
       echo "0 20 * * * curl -s -X POST http://habitflow:3847/api/emails/streak-risk -H \"Authorization: Bearer $$CRON_SECRET\"" >> /etc/crontabs/root &&
       echo "0 9 * * 0 curl -s -X POST http://habitflow:3847/api/emails/weekly-digest -H \"Authorization: Bearer $$CRON_SECRET\"" >> /etc/crontabs/root &&
       crond -f -l 2'
+
+volumes:
+  habitflow_data:
