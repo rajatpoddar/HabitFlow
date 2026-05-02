@@ -1,6 +1,6 @@
 import { format, subDays, eachDayOfInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import type { Habit, HabitLog, DailyStats, HabitStats, WeeklyData, HeatmapCell, BadHabitDayStats, BadHabitWeeklyTrend } from "@/types";
-import { calculateStreak } from "./habits";
+import { calculateStreak } from "@/lib/utils/habits";
 
 // ─── Daily Completion ─────────────────────────────────────────────────────────
 
