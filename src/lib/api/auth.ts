@@ -1,143 +1,63 @@
-import { supabase } from "@/lib/supabase";
+import { auth, signIn, signOut } from "@/auth";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import type { User } from "@/types";
 
-function toUser(sbUser: any, profile?: any): User {
-  return {
-    id: sbUser.id,
-    name:
-      profile?.name ||
-      sbUser.user_metadata?.name ||
-      sbUser.email?.split("@")[0] ||
-      "User",
-    email: sbUser.email,
-    avatar: profile?.avatar_url || sbUser.user_metadata?.avatar_url,
-    plan: profile?.plan ?? "free",
-    onboarding_completed: profile?.onboarding_completed ?? false,
-    gender: profile?.gender,
-    age: profile?.age,
-    location: profile?.location,
-    mobile_number: profile?.mobile_number,
-    occupation: profile?.occupation,
-    bio: profile?.bio,
-    created_at: sbUser.created_at,
-    updated_at: sbUser.updated_at || sbUser.created_at,
-  };
-}
-
-export async function login(email: string, password: string): Promise<User> {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  if (error) throw new Error(error.message);
-
-  const profile = await getProfile(data.user.id);
-  return toUser(data.user, profile);
-}
-
-export async function signup(
-  name: string,
-  email: string,
-  password: string
-): Promise<User> {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { name } },
-  });
-  if (error) throw new Error(error.message);
-  if (!data.user) throw new Error("Signup failed");
-  return toUser(data.user, { name, plan: "free" });
+export async function login(email: string, password: string): Promise<any> {
+  // Client-side login call (usually handled by signIn in the component)
+  return signIn("credentials", { email, password, redirect: false });
 }
 
 export async function logout(): Promise<void> {
-  await supabase.auth.signOut();
+  await signOut();
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) return null;
-  const profile = await getProfile(data.user.id);
-  return toUser(data.user, profile);
-}
+  const session = await auth();
+  if (!session?.user?.id) return null;
 
-export async function getSession() {
-  const { data } = await supabase.auth.getSession();
-  return data.session;
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
+
+  if (!user) return null;
+
+  return {
+    ...user,
+    created_at: user.createdAt.toISOString(),
+    updated_at: user.updatedAt.toISOString(),
+  } as unknown as User;
 }
 
 export async function getProfile(userId: string) {
-  const { data, error } = await supabase
-    .from("user_profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
-  if (error) console.warn("[getProfile] error:", error.message, "| code:", error.code);
-  return data;
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return user;
 }
 
 export async function updateProfile(
   userId: string,
-  data: Partial<{
-    name: string;
-    email: string;
-    gender: "male" | "female" | "other" | "prefer_not_to_say";
-    age: number;
-    location: string;
-    mobile_number: string;
-    occupation: string;
-    bio: string;
-    avatar_url: string;
-  }>
-): Promise<User> {
-  // Update Supabase Auth metadata
-  const updateData: any = {};
-  if (data.name) updateData.data = { name: data.name };
-  if (data.email) updateData.email = data.email;
-
-  const { data: updated, error } = await supabase.auth.updateUser(updateData);
-  if (error) throw new Error(error.message);
-
-  // Update user_profiles table
-  const profileUpdates: any = {};
-  if (data.name !== undefined) profileUpdates.name = data.name;
-  if (data.gender !== undefined) profileUpdates.gender = data.gender;
-  if (data.age !== undefined) profileUpdates.age = data.age;
-  if (data.location !== undefined) profileUpdates.location = data.location;
-  if (data.mobile_number !== undefined) profileUpdates.mobile_number = data.mobile_number;
-  if (data.occupation !== undefined) profileUpdates.occupation = data.occupation;
-  if (data.bio !== undefined) profileUpdates.bio = data.bio;
-  if (data.avatar_url !== undefined) profileUpdates.avatar_url = data.avatar_url;
-
-  if (Object.keys(profileUpdates).length > 0) {
-    await supabase
-      .from("user_profiles")
-      .update(profileUpdates)
-      .eq("id", userId);
-  }
-
-  const profile = await getProfile(userId);
-  return toUser(updated.user, profile);
-}
-
-export async function changePassword(newPassword: string): Promise<void> {
-  const { error } = await supabase.auth.updateUser({ password: newPassword });
-  if (error) throw new Error(error.message);
+  data: any
+): Promise<any> {
+  const updated = await db
+    .update(users)
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId))
+    .returning();
+  
+  return updated[0];
 }
 
 export async function deleteAccount(userId: string): Promise<void> {
-  // Mark as banned (soft delete) — hard delete requires service role
-  const { error } = await supabase
-    .from("user_profiles")
-    .update({ is_banned: true, ban_reason: "User requested account deletion" })
-    .eq("id", userId);
-  if (error) throw new Error(error.message);
-  await supabase.auth.signOut();
-}
-
-export async function sendPasswordReset(email: string): Promise<void> {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
-  });
-  if (error) throw new Error(error.message);
+  await db.delete(users).where(eq(users.id, userId));
+  await signOut();
 }

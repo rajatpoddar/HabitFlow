@@ -4,9 +4,8 @@ import * as authApi from "@/lib/api/auth";
 import * as habitsApi from "@/lib/api/habits";
 import * as journalApi from "@/lib/api/journal";
 import * as alarmsApi from "@/lib/api/alarms";
-import { supabase } from "@/lib/supabase";
 import toast from "react-hot-toast";
-import { format } from "date-fns";
+import { getSession } from "next-auth/react";
 
 const FREE_HABIT_LIMIT = 5;
 
@@ -20,26 +19,12 @@ interface AppState {
   insights: InsightItem[];
   insightsSummary: string;
   insightsLoading: boolean;
-  // Cache timestamps — avoid re-fetching within TTL
   _cache: Record<string, number>;
 
   // Auth
   checkAuth: () => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  updateProfile: (data: Partial<{
-    name: string;
-    email: string;
-    gender: "male" | "female" | "other" | "prefer_not_to_say";
-    age: number;
-    location: string;
-    mobile_number: string;
-    occupation: string;
-    bio: string;
-    avatar_url: string;
-  }>) => Promise<void>;
-  changePassword: (newPassword: string) => Promise<void>;
+  updateProfile: (data: any) => Promise<void>;
   deleteAccount: () => Promise<void>;
 
   // Plan helpers
@@ -88,8 +73,6 @@ export const useStore = create<AppState>((set, get) => ({
   insightsLoading: false,
   _cache: {},
 
-  // ─── Plan helpers ──────────────────────────────────────────────────────────
-
   canAddHabit: () => {
     const { user, habits } = get();
     if (!user) return false;
@@ -102,36 +85,17 @@ export const useStore = create<AppState>((set, get) => ({
     return user?.plan === "pro" || user?.plan === "admin";
   },
 
-  // ─── Auth ─────────────────────────────────────────────────────────────────
-
   checkAuth: async () => {
     try {
-      const user = await authApi.getCurrentUser();
-      set({ user, isLoading: false });
+      const session = await getSession();
+      if (session?.user) {
+        const user = await authApi.getCurrentUser();
+        set({ user, isLoading: false });
+      } else {
+        set({ user: null, isLoading: false });
+      }
     } catch {
       set({ user: null, isLoading: false });
-    }
-  },
-
-  login: async (email, password) => {
-    try {
-      const user = await authApi.login(email, password);
-      set({ user });
-      toast.success("Welcome back!");
-    } catch (err: any) {
-      toast.error(err.message || "Login failed");
-      throw err;
-    }
-  },
-
-  signup: async (name, email, password) => {
-    try {
-      const user = await authApi.signup(name, email, password);
-      set({ user });
-      toast.success("Account created!");
-    } catch (err: any) {
-      toast.error(err.message || "Signup failed");
-      throw err;
     }
   },
 
@@ -163,16 +127,6 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  changePassword: async (newPassword) => {
-    try {
-      await authApi.changePassword(newPassword);
-      toast.success("Password changed successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to change password");
-      throw err;
-    }
-  },
-
   deleteAccount: async () => {
     const { user } = get();
     if (!user) return;
@@ -191,12 +145,10 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  // ─── Habits ───────────────────────────────────────────────────────────────
-
   fetchHabits: async () => {
     const { user, _cache } = get();
     if (!user) return;
-    const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+    const CACHE_TTL = 2 * 60 * 1000;
     if (_cache["habits"] && Date.now() - _cache["habits"] < CACHE_TTL) return;
     try {
       const habits = await habitsApi.getHabits(user.id);
@@ -211,73 +163,50 @@ export const useStore = create<AppState>((set, get) => ({
     if (!user) return;
 
     if (!canAddHabit()) {
-      toast.error(
-        `Free plan is limited to ${FREE_HABIT_LIMIT} habits. Upgrade to Pro for unlimited habits.`,
-        { duration: 5000 }
-      );
+      toast.error(`Free plan limit reached.`);
       throw new Error("PLAN_LIMIT_EXCEEDED");
     }
 
-    const tempId = `temp_${Date.now()}`;
-    const tempHabit: Habit = {
-      ...data,
-      id: tempId,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    set((s) => ({ habits: [...s.habits, tempHabit] }));
     try {
       const habit = await habitsApi.createHabit({ ...data, user_id: user.id });
       set((s) => ({
-        habits: s.habits.map((h) => (h.id === tempId ? habit : h)),
-        _cache: { ...s._cache, habits: 0 }, // invalidate
+        habits: [...s.habits, habit],
+        _cache: { ...s._cache, habits: 0 },
       }));
       toast.success("Habit created! 🌱");
     } catch (err: any) {
-      set((s) => ({ habits: s.habits.filter((h) => h.id !== tempId) }));
-      if (err.message !== "PLAN_LIMIT_EXCEEDED") {
-        toast.error("Failed to create habit");
-      }
+      toast.error("Failed to create habit");
       throw err;
     }
   },
 
   updateHabit: async (id, data) => {
-    const prev = get().habits.find((h) => h.id === id);
-    set((s) => ({
-      habits: s.habits.map((h) => (h.id === id ? { ...h, ...data } : h)),
-    }));
     try {
       const habit = await habitsApi.updateHabit(id, data);
       set((s) => ({
         habits: s.habits.map((h) => (h.id === id ? habit : h)),
       }));
     } catch (err: any) {
-      if (prev) set((s) => ({ habits: s.habits.map((h) => (h.id === id ? prev : h)) }));
       toast.error("Failed to update habit");
       throw err;
     }
   },
 
   deleteHabit: async (id) => {
-    const prev = get().habits;
-    set((s) => ({ habits: s.habits.filter((h) => h.id !== id) }));
     try {
       await habitsApi.deleteHabit(id);
+      set((s) => ({ habits: s.habits.filter((h) => h.id !== id) }));
       toast.success("Habit removed");
     } catch {
-      set({ habits: prev });
       toast.error("Failed to delete habit");
     }
   },
-
-  // ─── Logs ─────────────────────────────────────────────────────────────────
 
   fetchLogs: async (startDate, endDate) => {
     const { user, _cache } = get();
     if (!user) return;
     const cacheKey = `logs:${startDate ?? ""}:${endDate ?? ""}`;
-    const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+    const CACHE_TTL = 2 * 60 * 1000;
     if (_cache[cacheKey] && Date.now() - _cache[cacheKey] < CACHE_TTL) return;
     try {
       const logs = await habitsApi.getLogsForUser(user.id, startDate, endDate);
@@ -288,141 +217,46 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   toggleHabitLog: async (habitId, date) => {
-    const dateStr = format(date, "yyyy-MM-dd");
-    const { logs } = get();
-    const existing = logs.find(
-      (l) => l.habit_id === habitId && l.date === dateStr
-    );
-
-    if (existing) {
-      if (existing.status === "done") {
-        set((s) => ({ logs: s.logs.filter((l) => l.id !== existing.id) }));
-      } else {
-        set((s) => ({
-          logs: s.logs.map((l) =>
-            l.id === existing.id ? { ...l, status: "done" } : l
-          ),
-        }));
-      }
-    } else {
-      const tempLog: HabitLog = {
-        id: `temp_${Date.now()}`,
-        habit_id: habitId,
-        date: dateStr,
-        status: "done",
-        count: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      set((s) => ({ logs: [...s.logs, tempLog] }));
-    }
-
     try {
-      const result = await habitsApi.toggleHabitLog(
-        habitId,
-        date,
-        existing?.status || null
-      );
-
-      if (result) {
-        set((s) => {
-          const hasTemp = s.logs.some(
-            (l) =>
-              l.id.startsWith("temp_") &&
-              l.habit_id === habitId &&
-              l.date === dateStr
-          );
-          if (hasTemp) {
-            return {
-              logs: s.logs.map((l) =>
-                l.id.startsWith("temp_") &&
-                l.habit_id === habitId &&
-                l.date === dateStr
-                  ? result
-                  : l
-              ),
-            };
-          }
+      const result = await habitsApi.toggleHabitLog(habitId, date, null);
+      set((s) => {
+        if (result) {
+          const exists = s.logs.find(l => l.id === result.id);
           return {
-            logs: s.logs.map((l) => (l.id === existing?.id ? result : l)),
+            logs: exists ? s.logs.map(l => l.id === result.id ? result : l) : [...s.logs, result]
           };
-        });
-      }
+        } else {
+          // It was a delete
+          return {
+            logs: s.logs.filter(l => !(l.habit_id === habitId && l.date === habitsApi.format(date, "yyyy-MM-dd")))
+          };
+        }
+      });
     } catch {
-      set({ logs });
       toast.error("Failed to update habit");
     }
   },
 
   updateBadHabitCount: async (habitId, date, delta) => {
-    const dateStr = format(date, "yyyy-MM-dd");
-    const { logs } = get();
-    const existing = logs.find(
-      (l) => l.habit_id === habitId && l.date === dateStr
-    );
-
-    const newCount = Math.max(0, (existing?.count ?? 0) + delta);
-    if (existing) {
-      set((s) => ({
-        logs: s.logs.map((l) =>
-          l.id === existing.id
-            ? { ...l, count: newCount, status: "done" }
-            : l
-        ),
-      }));
-    } else {
-      const tempLog: HabitLog = {
-        id: `temp_${Date.now()}`,
-        habit_id: habitId,
-        date: dateStr,
-        status: "done",
-        count: newCount,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      set((s) => ({ logs: [...s.logs, tempLog] }));
-    }
-
     try {
       const result = await habitsApi.updateBadHabitCount(habitId, date, delta);
       set((s) => {
-        const hasTemp = s.logs.some(
-          (l) =>
-            l.id.startsWith("temp_") &&
-            l.habit_id === habitId &&
-            l.date === dateStr
-        );
-        if (hasTemp) {
-          return {
-            logs: s.logs.map((l) =>
-              l.id.startsWith("temp_") &&
-              l.habit_id === habitId &&
-              l.date === dateStr
-                ? result
-                : l
-            ),
-          };
-        }
+        const exists = s.logs.find(l => l.id === result.id);
         return {
-          logs: s.logs.map((l) => (l.id === existing?.id ? result : l)),
+          logs: exists ? s.logs.map(l => l.id === result.id ? result : l) : [...s.logs, result]
         };
       });
     } catch {
-      set({ logs });
       toast.error("Failed to update count");
     }
   },
 
-  // ─── Journal ──────────────────────────────────────────────────────────────
-
   fetchJournalEntries: async () => {
-    const { user, _cache } = get();
+    const { user } = get();
     if (!user) return;
-    const CACHE_TTL = 2 * 60 * 1000;
-    if (_cache["journal"] && Date.now() - _cache["journal"] < CACHE_TTL) return;
     try {
       const entries = await journalApi.getJournalEntries(user.id);
-      set({ journalEntries: entries, _cache: { ...get()._cache, journal: Date.now() } });
+      set({ journalEntries: entries });
     } catch {
       toast.error("Failed to load journal");
     }
@@ -448,16 +282,12 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  // ─── Alarms ───────────────────────────────────────────────────────────────
-
   fetchAlarms: async () => {
-    const { user, _cache } = get();
+    const { user } = get();
     if (!user) return;
-    const CACHE_TTL = 2 * 60 * 1000;
-    if (_cache["alarms"] && Date.now() - _cache["alarms"] < CACHE_TTL) return;
     try {
       const alarms = await alarmsApi.getAlarms(user.id);
-      set({ alarms, _cache: { ...get()._cache, alarms: Date.now() } });
+      set({ alarms });
     } catch {
       toast.error("Failed to load alarms");
     }
@@ -486,33 +316,24 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   deleteAlarm: async (id) => {
-    const prev = get().alarms;
-    set((s) => ({ alarms: s.alarms.filter((a) => a.id !== id) }));
     try {
       await alarmsApi.deleteAlarm(id);
+      set((s) => ({ alarms: s.alarms.filter((a) => a.id !== id) }));
     } catch {
-      set({ alarms: prev });
       toast.error("Failed to delete alarm");
     }
   },
 
   toggleAlarm: async (id, enabled) => {
-    set((s) => ({
-      alarms: s.alarms.map((a) => (a.id === id ? { ...a, enabled } : a)),
-    }));
     try {
-      await alarmsApi.toggleAlarm(id, enabled);
-    } catch {
+      const updated = await alarmsApi.toggleAlarm(id, enabled);
       set((s) => ({
-        alarms: s.alarms.map((a) =>
-          a.id === id ? { ...a, enabled: !enabled } : a
-        ),
+        alarms: s.alarms.map((a) => (a.id === id ? updated : a)),
       }));
+    } catch {
       toast.error("Failed to update alarm");
     }
   },
-
-  // ─── Insights ─────────────────────────────────────────────────────────────
 
   fetchInsights: async () => {
     const { user } = get();
@@ -520,7 +341,7 @@ export const useStore = create<AppState>((set, get) => ({
     set({ insightsLoading: true });
     try {
       const res = await fetch("/api/insights");
-      if (!res.ok) throw new Error("Failed to fetch insights");
+      if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       set({
         insights: data.insights ?? [],

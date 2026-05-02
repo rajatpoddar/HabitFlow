@@ -3,13 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useStore } from "@/store/useStore";
+import { signupAction } from "@/app/actions/auth";
 import toast from "react-hot-toast";
 import { signupSchema } from "@/lib/validations";
 
 export default function SignupPage() {
   const router = useRouter();
-  const signup = useStore((s) => s.signup);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,17 +18,23 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = signupSchema.safeParse({ name, email, password, confirmPassword });
+    const formData = { name, email, password, confirmPassword };
+    const parsed = signupSchema.safeParse(formData);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
       return;
     }
     setIsLoading(true);
     try {
-      await signup(name, email, password);
-      router.push("/dashboard");
-    } catch {
-      // Error handled in store
+      const result = await signupAction(formData);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Account created! Please log in.");
+        router.push("/login");
+      }
+    } catch (err) {
+      toast.error("Something went wrong");
     } finally {
       setIsLoading(false);
     }

@@ -3,13 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useStore } from "@/store/useStore";
+import { signIn } from "next-auth/react";
 import { loginSchema } from "@/lib/validations";
 import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const router = useRouter();
-  const login = useStore((s) => s.login);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -24,15 +23,21 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     try {
-      await login(email, password);
-      const storeUser = useStore.getState().user;
-      if (storeUser?.plan === "admin") {
-        router.push("/admin");
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        toast.error("Invalid email or password");
       } else {
+        toast.success("Welcome back!");
         router.push("/dashboard");
+        router.refresh();
       }
-    } catch {
-      // Error handled in store
+    } catch (err) {
+      toast.error("Something went wrong");
     } finally {
       setIsLoading(false);
     }

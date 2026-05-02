@@ -1,56 +1,78 @@
-import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/db";
+import { habits, habitLogs } from "@/lib/db/schema";
+import { eq, and, gte, lte, desc, asc } from "drizzle-orm";
 import type { Habit, HabitLog, LogStatus } from "@/types";
 import { format } from "date-fns";
 
 // ─── Habits ───────────────────────────────────────────────────────────────────
 
 export async function getHabits(userId: string): Promise<Habit[]> {
-  const { data, error } = await supabase
-    .from("habits")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("is_active", true)
-    .order("created_at", { ascending: true });
+  const data = await db
+    .select()
+    .from(habits)
+    .where(and(eq(habits.userId, userId), eq(habits.isActive, true)))
+    .orderBy(asc(habits.createdAt));
 
-  if (error) throw new Error(error.message);
-  return (data || []) as Habit[];
+  return data.map(h => ({
+    ...h,
+    user_id: h.userId,
+    target_per_day: h.targetPerDay,
+    is_active: h.isActive,
+    reminder_time: h.reminderTime,
+    reminder_enabled: h.reminderEnabled,
+    daily_limit: h.dailyLimit,
+    created_at: h.createdAt.toISOString(),
+    updated_at: h.updatedAt.toISOString(),
+  })) as unknown as Habit[];
 }
 
-export async function createHabit(
-  data: Omit<Habit, "id" | "created_at" | "updated_at">
-): Promise<Habit> {
-  const { data: record, error } = await supabase
-    .from("habits")
-    .insert(data)
-    .select()
-    .single();
+export async function createHabit(data: any): Promise<Habit> {
+  const [record] = await db.insert(habits).values({
+    userId: data.user_id,
+    name: data.name,
+    type: data.type,
+    category: data.category || "Health",
+    icon: data.icon || "check_circle",
+    color: data.color || "#005237",
+    frequency: data.frequency || "daily",
+    targetPerDay: data.target_per_day || 1,
+    isActive: true,
+    reminderTime: data.reminder_time,
+    reminderEnabled: data.reminder_enabled || false,
+    dailyLimit: data.daily_limit,
+  }).returning();
 
-  if (error) throw new Error(error.message);
-  return record as Habit;
+  return {
+    ...record,
+    user_id: record.userId,
+    created_at: record.createdAt.toISOString(),
+    updated_at: record.updatedAt.toISOString(),
+  } as unknown as Habit;
 }
 
-export async function updateHabit(
-  id: string,
-  data: Partial<Omit<Habit, "id" | "user_id" | "created_at" | "updated_at">>
-): Promise<Habit> {
-  const { data: record, error } = await supabase
-    .from("habits")
-    .update(data)
-    .eq("id", id)
-    .select()
-    .single();
+export async function updateHabit(id: string, data: any): Promise<Habit> {
+  const [record] = await db
+    .update(habits)
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
+    .where(eq(habits.id, id))
+    .returning();
 
-  if (error) throw new Error(error.message);
-  return record as Habit;
+  return {
+    ...record,
+    user_id: record.userId,
+    created_at: record.createdAt.toISOString(),
+    updated_at: record.updatedAt.toISOString(),
+  } as unknown as Habit;
 }
 
 export async function deleteHabit(id: string): Promise<void> {
-  const { error } = await supabase
-    .from("habits")
-    .update({ is_active: false })
-    .eq("id", id);
-
-  if (error) throw new Error(error.message);
+  await db
+    .update(habits)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(habits.id, id));
 }
 
 // ─── Habit Logs ───────────────────────────────────────────────────────────────
@@ -60,20 +82,33 @@ export async function getLogsForUser(
   startDate?: string,
   endDate?: string
 ): Promise<HabitLog[]> {
-  let query = supabase
-    .from("habit_logs")
-    .select("*, habits!inner(user_id)")
-    .eq("habits.user_id", userId)
-    .order("date", { ascending: false });
+  const query = db
+    .select({
+      id: habitLogs.id,
+      habit_id: habitLogs.habitId,
+      date: habitLogs.date,
+      status: habitLogs.status,
+      count: habitLogs.count,
+      created_at: habitLogs.createdAt,
+      updated_at: habitLogs.updatedAt,
+    })
+    .from(habitLogs)
+    .innerJoin(habits, eq(habitLogs.habitId, habits.id))
+    .where(eq(habits.userId, userId))
+    .orderBy(desc(habitLogs.date));
 
-  if (startDate) query = query.gte("date", startDate);
-  if (endDate) query = query.lte("date", endDate);
+  // Note: Filtering by date string is fine as it's YYYY-MM-DD
+  const results = await query;
+  
+  let filtered = results;
+  if (startDate) filtered = filtered.filter(l => l.date >= startDate);
+  if (endDate) filtered = filtered.filter(l => l.date <= endDate);
 
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-
-  // Strip the joined habits column — keep only log fields
-  return (data || []).map(({ habits: _h, ...log }) => log) as HabitLog[];
+  return filtered.map(l => ({
+    ...l,
+    created_at: l.created_at.toISOString(),
+    updated_at: l.updated_at.toISOString(),
+  })) as unknown as HabitLog[];
 }
 
 export async function toggleHabitLog(
@@ -83,46 +118,45 @@ export async function toggleHabitLog(
 ): Promise<HabitLog | null> {
   const dateStr = format(date, "yyyy-MM-dd");
 
-  // Check for existing log
-  const { data: existing } = await supabase
-    .from("habit_logs")
-    .select("*")
-    .eq("habit_id", habitId)
-    .eq("date", dateStr)
-    .maybeSingle();
+  const [existing] = await db
+    .select()
+    .from(habitLogs)
+    .where(and(eq(habitLogs.habitId, habitId), eq(habitLogs.date, dateStr)))
+    .limit(1);
 
   if (existing) {
     if (existing.status === "done") {
-      // Un-toggle: delete the log
-      await supabase.from("habit_logs").delete().eq("id", existing.id);
+      await db.delete(habitLogs).where(eq(habitLogs.id, existing.id));
       return null;
     } else {
-      // Was missed → mark done
-      const { data, error } = await supabase
-        .from("habit_logs")
-        .update({ status: "done" })
-        .eq("id", existing.id)
-        .select()
-        .single();
-      if (error) throw new Error(error.message);
-      return data as HabitLog;
+      const [updated] = await db
+        .update(habitLogs)
+        .set({ status: "done", updatedAt: new Date() })
+        .where(eq(habitLogs.id, existing.id))
+        .returning();
+      return {
+        ...updated,
+        habit_id: updated.habitId,
+        created_at: updated.createdAt.toISOString(),
+        updated_at: updated.updatedAt.toISOString(),
+      } as unknown as HabitLog;
     }
   } else {
-    // Create new done log
-    const { data, error } = await supabase
-      .from("habit_logs")
-      .insert({ habit_id: habitId, date: dateStr, status: "done", count: 0 })
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return data as HabitLog;
+    const [inserted] = await db.insert(habitLogs).values({
+      habitId,
+      date: dateStr,
+      status: "done",
+      count: 0,
+    }).returning();
+    return {
+      ...inserted,
+      habit_id: inserted.habitId,
+      created_at: inserted.createdAt.toISOString(),
+      updated_at: inserted.updatedAt.toISOString(),
+    } as unknown as HabitLog;
   }
 }
 
-/**
- * Increment or decrement the usage count for a bad habit log.
- * Creates the log if it doesn't exist yet.
- */
 export async function updateBadHabitCount(
   habitId: string,
   date: Date,
@@ -130,61 +164,57 @@ export async function updateBadHabitCount(
 ): Promise<HabitLog> {
   const dateStr = format(date, "yyyy-MM-dd");
 
-  const { data: existing } = await supabase
-    .from("habit_logs")
-    .select("*")
-    .eq("habit_id", habitId)
-    .eq("date", dateStr)
-    .maybeSingle();
+  const [existing] = await db
+    .select()
+    .from(habitLogs)
+    .where(and(eq(habitLogs.habitId, habitId), eq(habitLogs.date, dateStr)))
+    .limit(1);
 
   if (existing) {
     const newCount = Math.max(0, (existing.count ?? 0) + delta);
-    const { data, error } = await supabase
-      .from("habit_logs")
-      .update({ count: newCount, status: "done" })
-      .eq("id", existing.id)
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return data as HabitLog;
+    const [updated] = await db
+      .update(habitLogs)
+      .set({ count: newCount, status: "done", updatedAt: new Date() })
+      .where(eq(habitLogs.id, existing.id))
+      .returning();
+    return {
+      ...updated,
+      habit_id: updated.habitId,
+      created_at: updated.createdAt.toISOString(),
+      updated_at: updated.updatedAt.toISOString(),
+    } as unknown as HabitLog;
   } else {
     const newCount = Math.max(0, delta);
-    const { data, error } = await supabase
-      .from("habit_logs")
-      .insert({ habit_id: habitId, date: dateStr, status: "done", count: newCount })
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return data as HabitLog;
+    const [inserted] = await db.insert(habitLogs).values({
+      habitId,
+      date: dateStr,
+      status: "done",
+      count: newCount,
+    }).returning();
+    return {
+      ...inserted,
+      habit_id: inserted.habitId,
+      created_at: inserted.createdAt.toISOString(),
+      updated_at: inserted.updatedAt.toISOString(),
+    } as unknown as HabitLog;
   }
 }
 
-// ─── Streak Calculation ───────────────────────────────────────────────────────
-
-/**
- * Check if a habit is due today based on its frequency settings
- */
 export function isHabitDueToday(habit: Habit, date: Date = new Date()): boolean {
   const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
 
   switch (habit.frequency) {
     case 'daily':
       return true;
-
     case 'weekdays':
       return dayOfWeek >= 1 && dayOfWeek <= 5;
-
     case 'weekends':
       return dayOfWeek === 0 || dayOfWeek === 6;
-
     case 'custom_days':
       if (!habit.custom_days || habit.custom_days.length === 0) return true;
       return habit.custom_days.includes(dayOfWeek);
-
     case 'times_per_week':
-      // For times_per_week, the habit is always "due" - we just track completion count
       return true;
-
     default:
       return true;
   }

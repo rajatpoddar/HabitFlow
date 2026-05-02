@@ -15,11 +15,14 @@ services:
     restart: unless-stopped
     ports:
       - "3847:3847"
+    depends_on:
+      - db
     environment:
       # Runtime secrets — never baked into image
       NODE_ENV: production
       PORT: 3847
       TZ: ${TZ:-UTC}
+      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@db:5432/habitflow}
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://habit.palojori.in}
@@ -38,6 +41,29 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+
+  db:
+    image: postgres:15-alpine
+    container_name: habitflow_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-habitflow}
+    ports:
+      - "5432:5432"
+    volumes:
+      - habitflow_data:/var/lib/postgresql/data
+      # Automatically run migrations on startup
+      - ./drizzle:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  habitflow_data:
 
   cron:
     image: alpine:latest

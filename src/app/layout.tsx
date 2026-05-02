@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import QueryProvider from "@/components/providers/QueryProvider";
 import PWAProvider from "@/components/providers/PWAProvider";
 import NProgressProvider from "@/components/providers/NProgressProvider";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 
 export const metadata: Metadata = {
   title: "HabitFlow - Build Better Habits",
@@ -53,8 +54,10 @@ export default function RootLayout({
       <body>
         <QueryProvider>
           <PWAProvider>
-            <NProgressProvider />
-            {children}
+            <AuthProvider>
+              <NProgressProvider />
+              {children}
+            </AuthProvider>
             <Toaster
           position="top-center"
           toastOptions={{
