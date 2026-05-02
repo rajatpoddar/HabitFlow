@@ -101,7 +101,8 @@ export default function OnboardingPage() {
       toast.error('Maximum 5 habits for your first setup');
       return;
     }
-    const customId = `custom-${Date.now()}`;
+    // Store the name in the ID for simplicity in this flow: custom-[timestamp]|[name]
+    const customId = `custom-${Date.now()}|${customHabit.trim()}`;
     setSelectedHabits([...selectedHabits, customId]);
     setCustomHabit('');
   };
@@ -130,10 +131,22 @@ export default function OnboardingPage() {
     try {
       const habitsToCreate = selectedHabits.map((habitId) => {
         const template = HABIT_TEMPLATES.find((t) => t.id === habitId);
+        if (template) {
+          return {
+            name: template.name,
+            icon: template.emoji,
+            category: template.category,
+            reminderTime: reminderTimes[habitId] || null,
+          };
+        }
+        
+        // For custom habits, the habitId contains the name if we fix it in addCustomHabit
+        // For now, it's custom-[timestamp], and we should have stored the name somewhere
+        // I'll fix addCustomHabit to store the name in the ID or a separate state
         return {
-          name: template?.name || habitId.replace('custom-', ''),
-          icon: template?.emoji || '🌱',
-          category: template?.category || 'Other',
+          name: habitId.startsWith('custom-') ? habitId.split('|')[1] || 'Custom Habit' : habitId,
+          icon: '🌱',
+          category: 'Other',
           reminderTime: reminderTimes[habitId] || null,
         };
       });

@@ -61,7 +61,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Create the social_stats view which sums the current streaks of all active habits for a user
 -- Using public.user_profiles instead of auth.users to avoid "Exposed Auth Users" lint error
-CREATE OR REPLACE VIEW public.social_stats AS
+-- Explicitly setting security_invoker = true to satisfy Supabase security lint
+CREATE OR REPLACE VIEW public.social_stats 
+WITH (security_invoker = true)
+AS
 SELECT 
     up.id AS user_id,
     COALESCE(SUM(get_current_streak(h.id)), 0) AS total_forest_health

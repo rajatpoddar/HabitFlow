@@ -129,8 +129,12 @@ END;
 $$;
 
 -- 6. Ensure social_stats view exists
--- Using public.user_profiles instead of auth.users to avoid "Exposed Auth Users" lint error
-CREATE OR REPLACE VIEW public.social_stats AS
+-- Ensure the security_invoker property is set (CREATE OR REPLACE doesn't update options)
+ALTER VIEW IF EXISTS public.social_stats SET (security_invoker = true);
+
+CREATE OR REPLACE VIEW public.social_stats 
+WITH (security_invoker = true)
+AS
 SELECT 
     up.id AS user_id,
     COALESCE(SUM(get_current_streak(h.id)), 0) AS total_forest_health
