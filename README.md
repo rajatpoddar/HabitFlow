@@ -67,6 +67,9 @@ Run migrations in order in the Supabase SQL Editor:
 4. `supabase/migrations/004_security_fixes.sql`
 5. `supabase/migrations/005_performance.sql`
 6. `supabase/migrations/006_push_notifications.sql`
+7. `supabase/migrations/007_social_features.sql`
+8. `supabase/migrations/008_user_profile_extensions.sql`
+9. `supabase/migrations/009_social_helpers.sql`
 
 ### 4. Generate VAPID keys for push notifications
 

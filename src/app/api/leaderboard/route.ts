@@ -34,8 +34,10 @@ export async function GET() {
       .order("total_forest_health", { ascending: false });
 
     if (statsError) {
-      console.error("Stats Error:", statsError);
-      return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+      if (statsError.code === "PGRST116" || statsError.message.includes("social_stats' not found")) {
+        return NextResponse.json({ error: "Social features (leaderboard) not set up. Run migration 009." }, { status: 500 });
+      }
+      throw statsError;
     }
 
     // Get user names for the leaderboard
@@ -44,10 +46,7 @@ export async function GET() {
       .select("id, name")
       .in("id", friendIds);
 
-    if (usersError) {
-      console.error("Users Error:", usersError);
-      return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-    }
+    if (usersError) throw usersError;
 
     const leaderboard = stats.map((stat) => {
       const user = users.find((u) => u.id === stat.user_id);
@@ -59,8 +58,8 @@ export async function GET() {
     });
 
     return NextResponse.json(leaderboard);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Leaderboard Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

@@ -11,6 +11,7 @@ interface FriendUser {
   id: string;
   name: string | null;
   avatar_url: string | null;
+  social_stats?: { total_forest_health: number }[];
 }
 
 interface Friendship {
@@ -45,8 +46,8 @@ export default function FriendsPage() {
   const fetchFriendships = async () => {
     try {
       const res = await fetch("/api/friends");
-      if (!res.ok) throw new Error("Failed to fetch friends");
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to fetch friends");
       setFriendships(data);
     } catch (err: any) {
       toast.error(err.message);
@@ -134,27 +135,47 @@ export default function FriendsPage() {
         </div>
 
         {/* Add Friend Section */}
-        <section className="bg-surface-container-low rounded-[1.5rem] p-6">
-          <h3 className="font-headline font-bold text-on-surface mb-3">Add Friend</h3>
-          <form onSubmit={handleAddFriend} className="flex gap-2">
-            <div className="relative flex-1 bg-surface-container-highest rounded-full border-b-2 border-primary/20 focus-within:border-primary transition-colors overflow-hidden">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span className="material-symbols-outlined text-primary/60 text-xl">mail</span>
+        <section className="bg-surface-container-low rounded-[2rem] p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+              <span className="material-symbols-outlined icon-fill">person_add</span>
+            </div>
+            <div>
+              <h3 className="font-headline font-bold text-on-surface">Grow Your Forest</h3>
+              <p className="font-body text-xs text-on-surface-variant">Invite friends by email to track progress together.</p>
+            </div>
+          </div>
+          
+          <form onSubmit={handleAddFriend} className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-primary">
+                <span className="material-symbols-outlined text-xl">mail</span>
               </div>
               <input
                 type="email"
                 value={searchEmail}
                 onChange={(e) => setSearchEmail(e.target.value)}
-                className="block w-full pl-12 pr-4 py-3 bg-transparent border-none text-on-surface focus:ring-0 font-body outline-none"
-                placeholder="Friend's email"
+                className="block w-full pl-12 pr-4 py-4 bg-surface-container-highest rounded-2xl border-2 border-transparent focus:border-primary/30 text-on-surface focus:ring-0 font-body outline-none transition-all placeholder:text-on-surface-variant/50"
+                placeholder="friend@example.com"
+                required
               />
             </div>
             <button
               type="submit"
               disabled={isSearching}
-              className="py-3 px-6 rounded-full bg-primary text-on-primary font-label font-semibold transition-all hover:scale-[1.02] disabled:opacity-60"
+              className="py-4 px-8 rounded-2xl bg-primary text-on-primary font-label font-bold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 shadow-primary-glow flex items-center justify-center gap-2"
             >
-              {isSearching ? "Sending..." : "Add"}
+              {isSearching ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-on-primary/20 border-t-on-primary rounded-full animate-spin" />
+                  <span>Sending...</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-xl">send</span>
+                  <span>Send Request</span>
+                </>
+              )}
             </button>
           </form>
         </section>
@@ -250,6 +271,12 @@ export default function FriendsPage() {
                       </div>
                       <div>
                         <h4 className="font-headline font-bold text-on-surface text-sm">{friend.name || "Anonymous"}</h4>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="material-symbols-outlined text-[10px] text-primary">forest</span>
+                          <span className="font-body text-[10px] text-on-surface-variant">
+                            Forest Health: <span className="font-bold text-primary">{friend.social_stats?.[0]?.total_forest_health || 0}</span>
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <button onClick={() => handleReject(f.id)} className="text-on-surface-variant hover:text-error text-xs font-semibold px-2" title="Remove Friend">

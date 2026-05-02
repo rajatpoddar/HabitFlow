@@ -18,12 +18,19 @@ export async function GET() {
         receiver_id,
         status,
         created_at,
-        requester:user_profiles!requester_id(id, name, avatar_url),
-        receiver:user_profiles!receiver_id(id, name, avatar_url)
+        requester:user_profiles!requester_id(id, name, avatar_url, social_stats(total_forest_health)),
+        receiver:user_profiles!receiver_id(id, name, avatar_url, social_stats(total_forest_health))
       `)
       .or(`requester_id.eq.${userData.user.id},receiver_id.eq.${userData.user.id}`);
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === "PGRST116" || error.message.includes("friendships' not found")) {
+        return NextResponse.json({ 
+          error: "Social features (friendships) table is missing. Please run migrations 007 and 009." 
+        }, { status: 500 });
+      }
+      throw error;
+    }
 
     return NextResponse.json(friendships);
   } catch (error: any) {
