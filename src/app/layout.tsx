@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import QueryProvider from "@/components/providers/QueryProvider";
 import PWAProvider from "@/components/providers/PWAProvider";
+import NProgressProvider from "@/components/providers/NProgressProvider";
 
 export const metadata: Metadata = {
   title: "HabitFlow - Build Better Habits",
@@ -52,6 +53,7 @@ export default function RootLayout({
       <body>
         <QueryProvider>
           <PWAProvider>
+            <NProgressProvider />
             {children}
             <Toaster
           position="top-center"
