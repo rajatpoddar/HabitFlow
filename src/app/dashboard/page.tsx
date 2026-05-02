@@ -13,6 +13,9 @@ import ProgressRing from "@/components/ui/ProgressRing";
 import PlanBanner from "@/components/ui/PlanBanner";
 import NotificationPermissionBanner from "@/components/notifications/NotificationPermissionBanner";
 import PWAInstallBanner from "@/components/pwa/PWAInstallBanner";
+import HabitForest from "@/components/habits/HabitForest";
+import Leaderboard from "@/components/social/Leaderboard";
+import { calculateStreak } from "@/lib/api/habits";
 import type { Habit } from "@/types";
 
 export default function DashboardPage() {
@@ -281,6 +284,35 @@ export default function DashboardPage() {
                 </div>
               </section>
             )}
+
+            {/* Your Forest */}
+            <section className="mt-8">
+              <h3 className="font-headline text-xl font-bold text-on-surface mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-xl">
+                  forest
+                </span>
+                Your Forest
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {habits.map((habit) => {
+                  const habitLogs = logs.filter((l) => l.habit_id === habit.id);
+                  const streak = calculateStreak(habitLogs).current;
+                  return (
+                    <HabitForest
+                      key={habit.id}
+                      currentStreak={streak}
+                      habitName={habit.name}
+                      color={habit.color}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Leaderboard */}
+            <section className="mt-8">
+              <Leaderboard />
+            </section>
 
             {/* Motivational message */}
             {completionPct === 100 && (
