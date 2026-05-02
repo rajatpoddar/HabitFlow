@@ -7,6 +7,7 @@ import {
   timestamp,
   uniqueIndex,
   primaryKey,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "next-auth/adapters";
 
@@ -139,3 +140,18 @@ export const alarms = pgTable("alarms", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const aiInsights = pgTable("ai_insights", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  weekStart: text("week_start").notNull(), // YYYY-MM-DD
+  insights: jsonb("insights").$type<any[]>().notNull(),
+  summary: text("summary").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  unq: uniqueIndex("ai_insights_user_week_idx").on(t.userId, t.weekStart),
+}));
+

@@ -23,6 +23,7 @@ interface AppState {
   logout: () => Promise<void>;
   updateProfile: (data: any) => Promise<void>;
   deleteAccount: () => Promise<void>;
+  changePassword: (newPassword: string) => Promise<void>;
 
   // Plan helpers
   canAddHabit: () => boolean;
@@ -141,6 +142,21 @@ export const useStore = create<AppState>((set, get) => ({
       window.location.href = "/login";
     } catch (err: any) {
       toast.error(err.message || "Failed to delete account");
+      throw err;
+    }
+  },
+
+  changePassword: async (newPassword: string) => {
+    try {
+      const res = await fetch("/api/auth/password", {
+        method: "PATCH",
+        body: JSON.stringify({ newPassword }),
+      });
+      const result = await res.json();
+      if (result.error) throw new Error(result.error);
+      toast.success("Password updated successfully!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update password");
       throw err;
     }
   },

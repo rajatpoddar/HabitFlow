@@ -1,4 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
+import type { HabitLog, LogStatus } from "@/types";
+
 const toggleHabitLog = async (habitId: string, date: Date) => {
   const res = await fetch("/api/logs/toggle", {
     method: "POST",
