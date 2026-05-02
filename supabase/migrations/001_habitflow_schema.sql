@@ -73,24 +73,28 @@ alter table public.journal_entries enable row level security;
 alter table public.alarms          enable row level security;
 
 -- habits policies
+drop policy if exists "habits: users manage own" on public.habits;
 create policy "habits: users manage own"
   on public.habits for all
   using  (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
 -- habit_logs policies
+drop policy if exists "habit_logs: users manage own" on public.habit_logs;
 create policy "habit_logs: users manage own"
   on public.habit_logs for all
   using  (auth.uid() = (select user_id from public.habits where id = habit_id))
   with check (auth.uid() = (select user_id from public.habits where id = habit_id));
 
 -- journal_entries policies
+drop policy if exists "journal: users manage own" on public.journal_entries;
 create policy "journal: users manage own"
   on public.journal_entries for all
   using  (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
 -- alarms policies
+drop policy if exists "alarms: users manage own" on public.alarms;
 create policy "alarms: users manage own"
   on public.alarms for all
   using  (auth.uid() = user_id)
@@ -105,18 +109,22 @@ begin
 end;
 $$;
 
+drop trigger if exists habits_updated_at on public.habits;
 create trigger habits_updated_at
   before update on public.habits
   for each row execute function public.set_updated_at();
 
+drop trigger if exists habit_logs_updated_at on public.habit_logs;
 create trigger habit_logs_updated_at
   before update on public.habit_logs
   for each row execute function public.set_updated_at();
 
+drop trigger if exists journal_updated_at on public.journal_entries;
 create trigger journal_updated_at
   before update on public.journal_entries
   for each row execute function public.set_updated_at();
 
+drop trigger if exists alarms_updated_at on public.alarms;
 create trigger alarms_updated_at
   before update on public.alarms
   for each row execute function public.set_updated_at();

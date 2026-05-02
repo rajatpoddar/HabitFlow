@@ -62,11 +62,13 @@ alter table public.rate_limit_log enable row level security;
 alter table public.audit_log      enable row level security;
 
 -- user_profiles: users can read/update their own; admins can read all
+drop policy if exists "profiles: users manage own" on public.user_profiles;
 create policy "profiles: users manage own"
   on public.user_profiles for all
   using  (auth.uid() = id)
   with check (auth.uid() = id);
 
+drop policy if exists "profiles: admins read all" on public.user_profiles;
 create policy "profiles: admins read all"
   on public.user_profiles for select
   using (
@@ -77,17 +79,20 @@ create policy "profiles: admins read all"
   );
 
 -- ai_insights: users can only see their own
+drop policy if exists "insights: users manage own" on public.ai_insights;
 create policy "insights: users manage own"
   on public.ai_insights for all
   using  (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
 -- rate_limit_log: service role only (no user access)
+drop policy if exists "rate_limit: no direct access" on public.rate_limit_log;
 create policy "rate_limit: no direct access"
   on public.rate_limit_log for all
   using (false);
 
 -- audit_log: admins can read; service role writes
+drop policy if exists "audit: admins read" on public.audit_log;
 create policy "audit: admins read"
   on public.audit_log for select
   using (
@@ -119,6 +124,7 @@ create trigger on_auth_user_created
   for each row execute function public.handle_new_user();
 
 -- ── updated_at triggers ───────────────────────────────────────
+drop trigger if exists user_profiles_updated_at on public.user_profiles;
 create trigger user_profiles_updated_at
   before update on public.user_profiles
   for each row execute function public.set_updated_at();

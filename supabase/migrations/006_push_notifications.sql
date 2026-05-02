@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS public.push_subscriptions (
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Users can only manage their own subscriptions
+DROP POLICY IF EXISTS "Users manage own subscriptions" ON public.push_subscriptions;
 CREATE POLICY "Users manage own subscriptions" ON public.push_subscriptions
   FOR ALL USING (auth.uid() = user_id);
 

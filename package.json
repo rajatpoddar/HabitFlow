@@ -10,7 +10,8 @@
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "pocketbase": "cd pocketbase && ./pocketbase serve"
+    "pocketbase": "cd pocketbase && ./pocketbase serve",
+    "db:sync": "./scripts/sync-db.sh"
   },
   "dependencies": {
     "@react-email/components": "^1.0.12",

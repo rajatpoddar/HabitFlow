@@ -15,6 +15,7 @@ import NotificationPermissionBanner from "@/components/notifications/Notificatio
 import PWAInstallBanner from "@/components/pwa/PWAInstallBanner";
 import HabitForest from "@/components/habits/HabitForest";
 import Leaderboard from "@/components/social/Leaderboard";
+import FriendRequestNotification from "@/components/social/FriendRequestNotification";
 import { calculateStreak } from "@/lib/api/habits";
 import type { Habit } from "@/types";
 
@@ -165,6 +166,9 @@ export default function DashboardPage() {
 
             {/* Notification Permission Banner */}
             <NotificationPermissionBanner />
+
+            {/* Friend Request Notification */}
+            <FriendRequestNotification />
 
             {/* Hero Bento */}
             <section className="grid grid-cols-3 gap-4">

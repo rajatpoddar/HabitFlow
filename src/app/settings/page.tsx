@@ -52,6 +52,8 @@ export default function SettingsPage() {
   const [editAge, setEditAge] = useState<number | "">("");
   const [editLocation, setEditLocation] = useState("");
   const [editMobile, setEditMobile] = useState("");
+  const [editOccupation, setEditOccupation] = useState("");
+  const [editBio, setEditBio] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -75,6 +77,8 @@ export default function SettingsPage() {
       setEditAge(user.age || "");
       setEditLocation(user.location || "");
       setEditMobile(user.mobile_number || "");
+      setEditOccupation(user.occupation || "");
+      setEditBio(user.bio || "");
       Promise.all([fetchHabits(), fetchLogs(), fetchAlarms()]);
     });
 
@@ -157,6 +161,8 @@ export default function SettingsPage() {
         age: editAge === "" ? undefined : Number(editAge),
         location: editLocation.trim(),
         mobile_number: editMobile.trim(),
+        occupation: editOccupation.trim(),
+        bio: editBio.trim(),
       });
       setIsEditingProfile(false);
     } catch {
@@ -321,14 +327,26 @@ export default function SettingsPage() {
 
                 <div className="relative bg-surface-container-highest rounded-t-DEFAULT border-b-2 border-primary/20 focus-within:border-primary transition-colors">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <span className="material-symbols-outlined text-primary/60 text-xl">phone_iphone</span>
+                    <span className="material-symbols-outlined text-primary/60 text-xl">work</span>
                   </div>
                   <input
-                    type="tel"
-                    value={editMobile}
-                    onChange={(e) => setEditMobile(e.target.value)}
+                    type="text"
+                    value={editOccupation}
+                    onChange={(e) => setEditOccupation(e.target.value)}
                     className="block w-full pl-12 pr-4 py-4 bg-transparent border-none text-on-surface focus:ring-0 font-body outline-none"
-                    placeholder="Mobile Number"
+                    placeholder="Occupation (e.g., Student)"
+                  />
+                </div>
+
+                <div className="relative bg-surface-container-highest rounded-t-DEFAULT border-b-2 border-primary/20 focus-within:border-primary transition-colors">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span className="material-symbols-outlined text-primary/60 text-xl">notes</span>
+                  </div>
+                  <textarea
+                    value={editBio}
+                    onChange={(e) => setEditBio(e.target.value)}
+                    className="block w-full pl-12 pr-4 py-4 bg-transparent border-none text-on-surface focus:ring-0 font-body outline-none min-h-[100px] resize-none"
+                    placeholder="Short bio..."
                   />
                 </div>
               </div>
@@ -373,15 +391,28 @@ export default function SettingsPage() {
                     />
                   </label>
                 </div>
-                <div>
-                  <h3 className="font-headline text-xl font-bold text-on-surface">{user?.name || "User"}</h3>
-                  <p className="font-body text-on-surface-variant text-sm">{user?.email}</p>
-                  {user?.location && <p className="font-body text-xs text-on-surface-variant mt-1 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">location_on</span>{user.location}</p>}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-headline text-xl font-bold text-on-surface truncate">{user?.name || "User"}</h3>
+                  <p className="font-body text-on-surface-variant text-sm truncate">{user?.email}</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                    {user?.location && (
+                      <p className="font-body text-[10px] text-on-surface-variant flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">location_on</span>
+                        {user.location}
+                      </p>
+                    )}
+                    {user?.occupation && (
+                      <p className="font-body text-[10px] text-primary flex items-center gap-1 font-bold">
+                        <span className="material-symbols-outlined text-[12px]">work</span>
+                        {user.occupation}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
               <button
                 onClick={() => setIsEditingProfile(true)}
-                className="bg-surface-variant/40 hover:bg-surface-container text-primary font-label font-semibold px-5 py-2.5 rounded-full transition-all hover:scale-[1.02] flex items-center gap-2 border border-outline-variant/15"
+                className="flex-shrink-0 bg-surface-variant/40 hover:bg-surface-container text-primary font-label font-bold px-4 py-2 rounded-xl transition-all active:scale-95 flex items-center gap-2 border border-outline-variant/15"
               >
                 <span className="material-symbols-outlined text-sm">edit</span>
                 Edit

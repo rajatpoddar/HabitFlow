@@ -9,16 +9,17 @@ self.addEventListener('push', (event) => {
 
   try {
     const data = event.data.json();
-    const { title, body, habitId, icon } = data;
+    const { title, body, habitId, icon, data: extraData } = data;
+    const url = extraData?.url || '/dashboard';
 
     const options = {
       body: body || 'Keep your streak alive! 🔥',
       icon: icon || '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
       vibrate: [200, 100, 200],
-      tag: `habit-${habitId}`,
+      tag: habitId ? `habit-${habitId}` : `notification-${Date.now()}`,
       requireInteraction: true,
-      actions: [
+      actions: habitId ? [
         {
           action: 'complete',
           title: 'Mark Done ✓',
@@ -27,10 +28,10 @@ self.addEventListener('push', (event) => {
           action: 'snooze',
           title: 'Snooze 10min',
         },
-      ],
+      ] : [],
       data: {
         habitId,
-        url: '/dashboard',
+        url: url,
         timestamp: Date.now(),
       },
     };

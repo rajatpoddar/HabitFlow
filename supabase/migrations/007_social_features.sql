@@ -13,18 +13,22 @@ CREATE TABLE IF NOT EXISTS public.friendships (
 
 ALTER TABLE public.friendships ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their friendships" ON public.friendships;
 CREATE POLICY "Users can view their friendships" 
 ON public.friendships FOR SELECT 
 USING (auth.uid() = requester_id OR auth.uid() = receiver_id);
 
+DROP POLICY IF EXISTS "Users can create friendships" ON public.friendships;
 CREATE POLICY "Users can create friendships" 
 ON public.friendships FOR INSERT 
 WITH CHECK (auth.uid() = requester_id);
 
+DROP POLICY IF EXISTS "Users can update friendships" ON public.friendships;
 CREATE POLICY "Users can update friendships" 
 ON public.friendships FOR UPDATE 
 USING (auth.uid() = requester_id OR auth.uid() = receiver_id);
 
+DROP POLICY IF EXISTS "Users can delete friendships" ON public.friendships;
 CREATE POLICY "Users can delete friendships" 
 ON public.friendships FOR DELETE 
 USING (auth.uid() = requester_id OR auth.uid() = receiver_id);
@@ -53,13 +57,14 @@ BEGIN
     
     RETURN v_streak;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Create the social_stats view which sums the current streaks of all active habits for a user
+-- Using public.user_profiles instead of auth.users to avoid "Exposed Auth Users" lint error
 CREATE OR REPLACE VIEW public.social_stats AS
 SELECT 
-    u.id AS user_id,
+    up.id AS user_id,
     COALESCE(SUM(get_current_streak(h.id)), 0) AS total_forest_health
-FROM auth.users u
-LEFT JOIN public.habits h ON u.id = h.user_id AND h.is_active = true
-GROUP BY u.id;
+FROM public.user_profiles up
+LEFT JOIN public.habits h ON up.id = h.user_id AND h.is_active = true
+GROUP BY up.id;

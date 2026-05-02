@@ -77,6 +77,8 @@ export interface UserProfile {
   age: number | null;
   location: string | null;
   mobile_number: string | null;
+  occupation: string | null;
+  bio: string | null;
   plan: "free" | "pro" | "admin";
   is_banned: boolean;
   ban_reason: string | null;

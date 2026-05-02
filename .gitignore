@@ -36,3 +36,6 @@ next-env.d.ts
 # pocketbase
 pocketbase/pb_data/
 pocketbase/pocketbase
+
+# supabase
+supabase/.temp/
