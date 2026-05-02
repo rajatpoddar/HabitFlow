@@ -26,7 +26,6 @@ export const {
     },
   },
   providers: [
-    authConfig.providers[0], // Placeholder
     {
       id: "credentials",
       name: "Credentials",
