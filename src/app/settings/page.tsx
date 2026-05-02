@@ -19,6 +19,7 @@ import {
   scheduleHabitReminders,
 } from "@/lib/notifications";
 import { calculateStreak } from "@/lib/api/habits";
+import { uploadAvatar } from "@/lib/api/storage";
 import type { Alarm } from "@/types";
 
 export default function SettingsPage() {
@@ -47,7 +48,12 @@ export default function SettingsPage() {
   const [cloudSync] = useState(true);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState("");
+  const [editGender, setEditGender] = useState<"male" | "female" | "other" | "prefer_not_to_say">("prefer_not_to_say");
+  const [editAge, setEditAge] = useState<number | "">("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editMobile, setEditMobile] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -65,6 +71,10 @@ export default function SettingsPage() {
       const { user } = useStore.getState();
       if (!user) { router.push("/login"); return; }
       setEditName(user.name || "");
+      setEditGender(user.gender || "prefer_not_to_say");
+      setEditAge(user.age || "");
+      setEditLocation(user.location || "");
+      setEditMobile(user.mobile_number || "");
       Promise.all([fetchHabits(), fetchLogs(), fetchAlarms()]);
     });
 
@@ -115,11 +125,39 @@ export default function SettingsPage() {
     router.push("/");
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user || !e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    
+    // Check file size (limit to 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be smaller than 5MB");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const publicUrl = await uploadAvatar(user.id, file);
+      await updateProfile({ avatar_url: publicUrl });
+      toast.success("Profile photo updated!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload photo");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!user || !editName.trim()) return;
     setIsSavingProfile(true);
     try {
-      await updateProfile({ name: editName.trim() });
+      await updateProfile({ 
+        name: editName.trim(),
+        gender: editGender,
+        age: editAge === "" ? undefined : Number(editAge),
+        location: editLocation.trim(),
+        mobile_number: editMobile.trim(),
+      });
       setIsEditingProfile(false);
     } catch {
       // error handled in store
@@ -222,19 +260,80 @@ export default function SettingsPage() {
           {isEditingProfile ? (
             <div className="space-y-4">
               <h3 className="font-headline font-bold text-on-surface">Edit Profile</h3>
-              <div className="relative bg-surface-container-highest rounded-t-DEFAULT border-b-2 border-primary/20 focus-within:border-primary transition-colors">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <span className="material-symbols-outlined text-primary/60 text-xl">person</span>
+              <div className="space-y-3">
+                <div className="relative bg-surface-container-highest rounded-t-DEFAULT border-b-2 border-primary/20 focus-within:border-primary transition-colors">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span className="material-symbols-outlined text-primary/60 text-xl">person</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="block w-full pl-12 pr-4 py-4 bg-transparent border-none text-on-surface focus:ring-0 font-body outline-none"
+                    placeholder="Your name"
+                  />
                 </div>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="block w-full pl-12 pr-4 py-4 bg-transparent border-none text-on-surface focus:ring-0 font-body outline-none"
-                  placeholder="Your name"
-                />
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="relative bg-surface-container-highest rounded-t-DEFAULT border-b-2 border-primary/20 focus-within:border-primary transition-colors">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <span className="material-symbols-outlined text-primary/60 text-xl">wc</span>
+                    </div>
+                    <select
+                      value={editGender}
+                      onChange={(e) => setEditGender(e.target.value as any)}
+                      className="block w-full pl-12 pr-4 py-4 bg-transparent border-none text-on-surface focus:ring-0 font-body outline-none appearance-none"
+                    >
+                      <option value="prefer_not_to_say">Prefer not to say</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  
+                  <div className="relative bg-surface-container-highest rounded-t-DEFAULT border-b-2 border-primary/20 focus-within:border-primary transition-colors">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <span className="material-symbols-outlined text-primary/60 text-xl">cake</span>
+                    </div>
+                    <input
+                      type="number"
+                      value={editAge}
+                      onChange={(e) => setEditAge(e.target.value ? Number(e.target.value) : "")}
+                      className="block w-full pl-12 pr-4 py-4 bg-transparent border-none text-on-surface focus:ring-0 font-body outline-none"
+                      placeholder="Age"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <div className="relative bg-surface-container-highest rounded-t-DEFAULT border-b-2 border-primary/20 focus-within:border-primary transition-colors">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span className="material-symbols-outlined text-primary/60 text-xl">location_on</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={editLocation}
+                    onChange={(e) => setEditLocation(e.target.value)}
+                    className="block w-full pl-12 pr-4 py-4 bg-transparent border-none text-on-surface focus:ring-0 font-body outline-none"
+                    placeholder="Location"
+                  />
+                </div>
+
+                <div className="relative bg-surface-container-highest rounded-t-DEFAULT border-b-2 border-primary/20 focus-within:border-primary transition-colors">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span className="material-symbols-outlined text-primary/60 text-xl">phone_iphone</span>
+                  </div>
+                  <input
+                    type="tel"
+                    value={editMobile}
+                    onChange={(e) => setEditMobile(e.target.value)}
+                    className="block w-full pl-12 pr-4 py-4 bg-transparent border-none text-on-surface focus:ring-0 font-body outline-none"
+                    placeholder="Mobile Number"
+                  />
+                </div>
               </div>
-              <div className="flex gap-3">
+
+              <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setIsEditingProfile(false)}
                   className="flex-1 py-3 rounded-full bg-surface-container text-on-surface-variant font-label font-semibold transition-colors hover:bg-surface-container-high"
@@ -253,12 +352,31 @@ export default function SettingsPage() {
           ) : (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center">
-                  <span className="material-symbols-outlined text-on-surface-variant text-3xl">person</span>
+                <div className="relative group">
+                  <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center overflow-hidden">
+                    {isUploadingAvatar ? (
+                      <span className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    ) : user?.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="material-symbols-outlined text-on-surface-variant text-3xl">person</span>
+                    )}
+                  </div>
+                  <label className="absolute inset-0 bg-black/40 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                    <span className="material-symbols-outlined text-xl">photo_camera</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={handleAvatarChange}
+                      disabled={isUploadingAvatar}
+                    />
+                  </label>
                 </div>
                 <div>
                   <h3 className="font-headline text-xl font-bold text-on-surface">{user?.name || "User"}</h3>
                   <p className="font-body text-on-surface-variant text-sm">{user?.email}</p>
+                  {user?.location && <p className="font-body text-xs text-on-surface-variant mt-1 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">location_on</span>{user.location}</p>}
                 </div>
               </div>
               <button

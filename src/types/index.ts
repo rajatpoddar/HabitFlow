@@ -5,6 +5,10 @@ export interface User {
   avatar?: string;
   plan?: "free" | "pro" | "admin";
   onboarding_completed?: boolean;
+  gender?: "male" | "female" | "other" | "prefer_not_to_say";
+  age?: number;
+  location?: string;
+  mobile_number?: string;
   created_at: string;
   updated_at: string;
 }
@@ -69,6 +73,10 @@ export interface UserProfile {
   id: string;
   name: string | null;
   avatar_url: string | null;
+  gender: "male" | "female" | "other" | "prefer_not_to_say" | null;
+  age: number | null;
+  location: string | null;
+  mobile_number: string | null;
   plan: "free" | "pro" | "admin";
   is_banned: boolean;
   ban_reason: string | null;

@@ -28,7 +28,15 @@ interface AppState {
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  updateProfile: (data: { name?: string; email?: string }) => Promise<void>;
+  updateProfile: (data: Partial<{
+    name: string;
+    email: string;
+    gender: "male" | "female" | "other" | "prefer_not_to_say";
+    age: number;
+    location: string;
+    mobile_number: string;
+    avatar_url: string;
+  }>) => Promise<void>;
   changePassword: (newPassword: string) => Promise<void>;
   deleteAccount: () => Promise<void>;
 

@@ -13,6 +13,10 @@ function toUser(sbUser: any, profile?: any): User {
     avatar: profile?.avatar_url || sbUser.user_metadata?.avatar_url,
     plan: profile?.plan ?? "free",
     onboarding_completed: profile?.onboarding_completed ?? false,
+    gender: profile?.gender,
+    age: profile?.age,
+    location: profile?.location,
+    mobile_number: profile?.mobile_number,
     created_at: sbUser.created_at,
     updated_at: sbUser.updated_at || sbUser.created_at,
   };
@@ -72,7 +76,15 @@ export async function getProfile(userId: string) {
 
 export async function updateProfile(
   userId: string,
-  data: Partial<{ name: string; email: string }>
+  data: Partial<{
+    name: string;
+    email: string;
+    gender: "male" | "female" | "other" | "prefer_not_to_say";
+    age: number;
+    location: string;
+    mobile_number: string;
+    avatar_url: string;
+  }>
 ): Promise<User> {
   // Update Supabase Auth metadata
   const updateData: any = {};
@@ -83,10 +95,18 @@ export async function updateProfile(
   if (error) throw new Error(error.message);
 
   // Update user_profiles table
-  if (data.name) {
+  const profileUpdates: any = {};
+  if (data.name !== undefined) profileUpdates.name = data.name;
+  if (data.gender !== undefined) profileUpdates.gender = data.gender;
+  if (data.age !== undefined) profileUpdates.age = data.age;
+  if (data.location !== undefined) profileUpdates.location = data.location;
+  if (data.mobile_number !== undefined) profileUpdates.mobile_number = data.mobile_number;
+  if (data.avatar_url !== undefined) profileUpdates.avatar_url = data.avatar_url;
+
+  if (Object.keys(profileUpdates).length > 0) {
     await supabase
       .from("user_profiles")
-      .update({ name: data.name })
+      .update(profileUpdates)
       .eq("id", userId);
   }
 

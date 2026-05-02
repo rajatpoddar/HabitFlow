@@ -7,6 +7,7 @@ const navItems = [
   { href: "/dashboard", icon: "potted_plant", label: "Forest" },
   { href: "/analytics", icon: "analytics", label: "Insights" },
   { href: "/journal", icon: "edit_note", label: "Journal" },
+  { href: "/friends", icon: "group", label: "Friends" },
   { href: "/settings", icon: "settings", label: "Settings" },
 ];
 
