@@ -30,13 +30,13 @@ interface AppState {
   isPro: () => boolean;
 
   // Habits
-  fetchHabits: () => Promise<void>;
+  fetchHabits: (force?: boolean) => Promise<void>;
   createHabit: (data: Omit<Habit, "id" | "created_at" | "updated_at">) => Promise<void>;
   updateHabit: (id: string, data: Partial<Habit>) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
 
   // Logs
-  fetchLogs: (startDate?: string, endDate?: string) => Promise<void>;
+  fetchLogs: (startDate?: string, endDate?: string, force?: boolean) => Promise<void>;
   toggleHabitLog: (habitId: string, date: Date) => Promise<void>;
   updateBadHabitCount: (habitId: string, date: Date, delta: 1 | -1) => Promise<void>;
 
