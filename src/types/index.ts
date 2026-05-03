@@ -4,15 +4,19 @@ export interface User {
   email: string;
   avatar?: string;
   plan?: "free" | "pro" | "admin";
+  onboardingCompleted?: boolean;
   onboarding_completed?: boolean;
   gender?: "male" | "female" | "other" | "prefer_not_to_say";
   age?: number;
   location?: string;
+  mobileNumber?: string;
   mobile_number?: string;
   occupation?: string;
   bio?: string;
   created_at: string;
   updated_at: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 export type HabitType = "good" | "bad";

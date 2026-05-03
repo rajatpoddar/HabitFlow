@@ -44,6 +44,7 @@ export async function GET() {
     // Map to match the expected UI structure (social_stats placeholder)
     const enrichedFriendships = userFriendships.map((f) => ({
       ...f,
+      created_at: f.created_at.toISOString(),
       requester: f.requester ? { ...f.requester, social_stats: [{ total_forest_health: 0 }] } : null,
       receiver: f.receiver ? { ...f.receiver, social_stats: [{ total_forest_health: 0 }] } : null,
     }));
