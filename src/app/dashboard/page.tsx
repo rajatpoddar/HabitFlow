@@ -33,10 +33,12 @@ export default function DashboardPage() {
     checkAuth().then(() => {
       const { user } = useStore.getState();
       if (!user) { router.push("/login"); return; }
+      
       // Parallel fetch — no waterfall
       Promise.all([fetchHabits(), fetchLogs()]).then(() => {
-        const { habits } = useStore.getState();
-        if (habits.length === 0) {
+        const { habits, user: currentUser } = useStore.getState();
+        // Only redirect to onboarding if no habits AND not marked as completed
+        if (habits.length === 0 && !currentUser?.onboardingCompleted) {
           router.push("/onboarding");
         }
       });

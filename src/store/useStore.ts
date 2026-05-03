@@ -57,6 +57,9 @@ interface AppState {
 
   // Insights
   fetchInsights: () => Promise<void>;
+
+  // Utils
+  resetCache: () => void;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -161,11 +164,11 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  fetchHabits: async () => {
+  fetchHabits: async (force = false) => {
     const { user, _cache } = get();
     if (!user) return;
     const CACHE_TTL = 2 * 60 * 1000;
-    if (_cache["habits"] && Date.now() - _cache["habits"] < CACHE_TTL) return;
+    if (!force && _cache["habits"] && Date.now() - _cache["habits"] < CACHE_TTL) return;
     try {
       const res = await fetch("/api/habits");
       const data = await res.json();
@@ -227,12 +230,12 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  fetchLogs: async (startDate, endDate) => {
+  fetchLogs: async (startDate, endDate, force = false) => {
     const { user, _cache } = get();
     if (!user) return;
     const cacheKey = `logs:${startDate ?? ""}:${endDate ?? ""}`;
     const CACHE_TTL = 2 * 60 * 1000;
-    if (_cache[cacheKey] && Date.now() - _cache[cacheKey] < CACHE_TTL) return;
+    if (!force && _cache[cacheKey] && Date.now() - _cache[cacheKey] < CACHE_TTL) return;
     try {
       const params = new URLSearchParams();
       if (startDate) params.set("startDate", startDate);
@@ -386,5 +389,8 @@ export const useStore = create<AppState>((set, get) => ({
     } catch {
       set({ insightsLoading: false });
     }
+  },
+  resetCache: () => {
+    set({ _cache: {} });
   },
 }));

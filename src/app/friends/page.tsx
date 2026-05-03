@@ -138,15 +138,18 @@ export default function FriendsPage() {
     }
   };
 
-  const handleReject = async (id: string) => {
+  const handleReject = async (id: string, isUnfriend: boolean = false) => {
+    if (isUnfriend && !window.confirm("Are you sure you want to remove this friend? 🌱")) {
+      return;
+    }
     try {
       const res = await fetch("/api/friends/reject", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ friendshipId: id }),
       });
-      if (!res.ok) throw new Error("Failed to reject");
-      toast.success("Request removed");
+      if (!res.ok) throw new Error("Failed to remove");
+      toast.success(isUnfriend ? "Friend removed" : "Request removed");
       fetchFriendships();
     } catch (err: any) {
       toast.error(err.message);
@@ -353,7 +356,7 @@ export default function FriendsPage() {
                         </div>
                       </div>
                     </div>
-                    <button onClick={() => handleReject(f.id)} className="w-10 h-10 rounded-xl flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors" title="Remove Friend">
+                    <button onClick={() => handleReject(f.id, true)} className="w-10 h-10 rounded-xl flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors" title="Remove Friend">
                       <span className="material-symbols-outlined text-xl">person_remove</span>
                     </button>
                   </div>

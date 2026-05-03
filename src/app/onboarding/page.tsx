@@ -57,7 +57,8 @@ export default function OnboardingPage() {
         throw new Error('Failed to skip onboarding');
       }
 
-      // Refresh user state to get updated onboarding_completed flag
+      // Refresh user state and clear cache
+      useStore.getState().resetCache();
       await checkAuth();
       
       router.push('/dashboard');
@@ -164,10 +165,16 @@ export default function OnboardingPage() {
         throw new Error('Failed to complete onboarding');
       }
 
-      // Refresh user state to get updated onboarding_completed flag
+      // Refresh user state and clear cache to get updated habits/flag
+      useStore.getState().resetCache();
       await checkAuth();
+      await useStore.getState().fetchHabits(true);
 
-      toast.success('Welcome to HabitFlow! 🌿');
+      toast.success('Welcome to HabitFlow! 🌿', { duration: 5000 });
+      toast('Consider updating your profile bio and occupation! 👤', {
+        icon: 'ℹ️',
+        duration: 6000,
+      });
       router.push('/dashboard');
     } catch (error) {
       console.error('Error completing onboarding:', error);

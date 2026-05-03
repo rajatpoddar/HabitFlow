@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { friendships, users } from "@/lib/db/schema";
-import { eq, or } from "drizzle-orm";
+import { eq, or, aliasedTable } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -13,7 +13,11 @@ export async function GET() {
 
     const userId = session.user.id;
 
-    // Fetch friendships using Drizzle
+    // Aliased tables for joins
+    const requester = aliasedTable(users, "requester");
+    const receiver = aliasedTable(users, "receiver");
+
+    // Fetch friendships with profiles using joins
     const userFriendships = await db
       .select({
         id: friendships.id,
@@ -21,30 +25,28 @@ export async function GET() {
         receiver_id: friendships.receiverId,
         status: friendships.status,
         created_at: friendships.createdAt,
+        requester: {
+          id: requester.id,
+          name: requester.name,
+          avatar_url: requester.image,
+        },
+        receiver: {
+          id: receiver.id,
+          name: receiver.name,
+          avatar_url: receiver.image,
+        },
       })
       .from(friendships)
+      .leftJoin(requester, eq(friendships.requesterId, requester.id))
+      .leftJoin(receiver, eq(friendships.receiverId, receiver.id))
       .where(or(eq(friendships.requesterId, userId), eq(friendships.receiverId, userId)));
 
-    // Fetch profiles manually to simulate the join
-    const enrichedFriendships = await Promise.all(
-      userFriendships.map(async (f) => {
-        const [requester] = await db
-          .select({ id: users.id, name: users.name, image: users.image })
-          .from(users)
-          .where(eq(users.id, f.requester_id));
-
-        const [receiver] = await db
-          .select({ id: users.id, name: users.name, image: users.image })
-          .from(users)
-          .where(eq(users.id, f.receiver_id));
-
-        return {
-          ...f,
-          requester: requester ? { ...requester, avatar_url: requester.image, social_stats: [{ total_forest_health: 0 }] } : null,
-          receiver: receiver ? { ...receiver, avatar_url: receiver.image, social_stats: [{ total_forest_health: 0 }] } : null,
-        };
-      })
-    );
+    // Map to match the expected UI structure (social_stats placeholder)
+    const enrichedFriendships = userFriendships.map((f) => ({
+      ...f,
+      requester: f.requester ? { ...f.requester, social_stats: [{ total_forest_health: 0 }] } : null,
+      receiver: f.receiver ? { ...f.receiver, social_stats: [{ total_forest_health: 0 }] } : null,
+    }));
 
     return NextResponse.json(enrichedFriendships);
   } catch (error: any) {
