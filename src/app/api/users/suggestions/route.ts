@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { users, friendships } from "@/lib/db/schema";
-import { ne, notExists, or, and, eq, sql } from "drizzle-orm";
+import { ne, notExists, or, and, eq, sql, desc } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -36,7 +36,7 @@ export async function GET() {
           )
         )
       )
-      .orderBy(sql`random()`)
+      .orderBy(desc(users.createdAt))
       .limit(5);
 
     // Simulate total_forest_health = 0

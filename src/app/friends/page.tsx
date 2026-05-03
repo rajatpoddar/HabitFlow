@@ -225,7 +225,7 @@ export default function FriendsPage() {
                   <div key={u.id} className="flex items-center justify-between bg-surface-container-high rounded-2xl p-3">
                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => setSelectedUser(u)}>
                       <div className="w-10 h-10 rounded-xl bg-surface-container-highest overflow-hidden">
-                        {u.avatar_url ? <img src={u.avatar_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-on-surface-variant/30"><span className="material-symbols-outlined">person</span></div>}
+                        {u.avatar_url ? <img src={u.avatar_url} alt="" loading="lazy" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-on-surface-variant/30"><span className="material-symbols-outlined">person</span></div>}
                       </div>
                       <div>
                         <h4 className="font-headline font-bold text-on-surface text-sm">{u.name}</h4>
@@ -258,7 +258,7 @@ export default function FriendsPage() {
                   <div className="flex items-center gap-3 cursor-pointer" onClick={() => setSelectedUser(f.requester)}>
                     <div className="w-10 h-10 rounded-xl bg-surface-container-high overflow-hidden">
                       {f.requester.avatar_url ? (
-                        <img src={f.requester.avatar_url} alt="" className="w-full h-full object-cover" />
+                        <img src={f.requester.avatar_url} alt="" loading="lazy" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-on-surface-variant/30">
                           <span className="material-symbols-outlined">person</span>
@@ -293,7 +293,7 @@ export default function FriendsPage() {
                 <div key={u.id} className="flex-shrink-0 w-36 bg-surface-container-high rounded-[2rem] p-4 flex flex-col items-center text-center group cursor-pointer" onClick={() => setSelectedUser(u)}>
                   <div className="w-16 h-16 rounded-2xl bg-surface p-1 mb-3 shadow-md group-hover:scale-105 transition-transform">
                     <div className="w-full h-full rounded-xl bg-surface-container-highest overflow-hidden">
-                      {u.avatar_url ? <img src={u.avatar_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-on-surface-variant/20"><span className="material-symbols-outlined text-2xl">person</span></div>}
+                      {u.avatar_url ? <img src={u.avatar_url} alt="" loading="lazy" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-on-surface-variant/20"><span className="material-symbols-outlined text-2xl">person</span></div>}
                     </div>
                   </div>
                   <h4 className="font-headline font-bold text-on-surface text-xs truncate w-full">{u.name}</h4>
@@ -338,7 +338,7 @@ export default function FriendsPage() {
                       <div className="w-12 h-12 rounded-[1.25rem] bg-surface p-1 shadow-sm group-hover:scale-105 transition-transform">
                         <div className="w-full h-full rounded-xl bg-surface-container-high overflow-hidden">
                           {friend.avatar_url ? (
-                            <img src={friend.avatar_url} alt="" className="w-full h-full object-cover" />
+                            <img src={friend.avatar_url} alt="" loading="lazy" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-on-surface-variant/30">
                               <span className="material-symbols-outlined">person</span>
@@ -376,7 +376,7 @@ export default function FriendsPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-surface-container-high overflow-hidden">
                       {f.receiver.avatar_url ? (
-                        <img src={f.receiver.avatar_url} alt="" className="w-full h-full object-cover" />
+                        <img src={f.receiver.avatar_url} alt="" loading="lazy" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-on-surface-variant/30">
                           <span className="material-symbols-outlined">person</span>
