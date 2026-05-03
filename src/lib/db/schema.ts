@@ -28,6 +28,7 @@ export const users = pgTable("user", {
   mobileNumber: text("mobile_number"),
   occupation: text("occupation"),
   bio: text("bio"),
+  friendUpdatesEnabled: boolean("friend_updates_enabled").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -123,6 +124,7 @@ export const journalEntries = pgTable("journal_entries", {
   goodText: text("good_text").default(""),
   badText: text("bad_text").default(""),
   journalText: text("journal_text").default(""),
+  isShared: boolean("is_shared").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -170,4 +172,15 @@ export const friendships = pgTable("friendships", {
   unq: uniqueIndex("unique_friendship").on(t.requesterId, t.receiverId),
 }));
 
-
+export const feedLikes = pgTable("feed_likes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  journalEntryId: uuid("journal_entry_id")
+    .notNull()
+    .references(() => journalEntries.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  unq: uniqueIndex("unique_like").on(t.userId, t.journalEntryId),
+}));

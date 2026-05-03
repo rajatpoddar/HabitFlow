@@ -23,6 +23,7 @@ export default function JournalPage() {
   const [goodText, setGoodText] = useState("");
   const [badText, setBadText] = useState("");
   const [journalText, setJournalText] = useState("");
+  const [isShared, setIsShared] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<"write" | "history">("write");
 
@@ -48,10 +49,12 @@ export default function JournalPage() {
       setGoodText(currentEntry.good_text || "");
       setBadText(currentEntry.bad_text || "");
       setJournalText(currentEntry.journal_text || "");
+      setIsShared(currentEntry.is_shared || false);
     } else {
       setGoodText("");
       setBadText("");
       setJournalText("");
+      setIsShared(false);
     }
   }, [currentEntry, selectedDateStr]);
 
@@ -63,6 +66,7 @@ export default function JournalPage() {
         good_text: goodText,
         bad_text: badText,
         journal_text: journalText,
+        is_shared: isShared,
       });
     } finally {
       setIsSaving(false);
@@ -222,6 +226,27 @@ export default function JournalPage() {
                   rows={5}
                   className="w-full bg-transparent border-none resize-none font-body text-on-surface placeholder:text-on-surface-variant/40 focus:ring-0 outline-none text-sm leading-relaxed"
                 />
+                
+                <div className="mt-4 pt-4 border-t border-on-surface-variant/10 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-headline font-bold text-sm text-on-surface flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px] text-primary">public</span>
+                      Share Thought
+                    </h4>
+                    <p className="font-body text-[10px] text-on-surface-variant mt-0.5">
+                      Allow friends to see your daily thought in their feed
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={isShared}
+                      onChange={(e) => setIsShared(e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-on-surface-variant peer-checked:after:bg-on-primary after:border-transparent after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </div>
               </div>
             </div>
 

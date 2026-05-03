@@ -1,8 +1,9 @@
 import { db } from "@/lib/db";
-import { habits, habitLogs } from "@/lib/db/schema";
-import { eq, and, gte, lte, desc, asc } from "drizzle-orm";
+import { habits, habitLogs, users } from "@/lib/db/schema";
+import { eq, and, gte, lte, desc, asc, inArray } from "drizzle-orm";
 import type { Habit, HabitLog, LogStatus } from "@/types";
 import { format } from "date-fns";
+import { notifyFriends } from "@/lib/notifications-server";
 
 // ─── Habits ───────────────────────────────────────────────────────────────────
 
@@ -148,6 +149,45 @@ export async function toggleHabitLog(
       status: "done",
       count: 0,
     }).returning();
+
+    // Check for all-habits-completed notification
+    try {
+      const [habit] = await db.select().from(habits).where(eq(habits.id, habitId)).limit(1);
+      if (habit && habit.type === "good") {
+        const allUserHabits = await db
+          .select({ id: habits.id })
+          .from(habits)
+          .where(and(
+            eq(habits.userId, habit.userId), 
+            eq(habits.type, "good"), 
+            eq(habits.isActive, true)
+          ));
+        
+        const habitIds = allUserHabits.map(h => h.id);
+        
+        if (habitIds.length > 0) {
+          const doneLogs = await db
+            .select()
+            .from(habitLogs)
+            .where(and(
+              inArray(habitLogs.habitId, habitIds), 
+              eq(habitLogs.date, dateStr), 
+              eq(habitLogs.status, "done")
+            ));
+          
+          if (doneLogs.length === habitIds.length) {
+            const [user] = await db.select({ name: users.name }).from(users).where(eq(users.id, habit.userId));
+            notifyFriends(habit.userId, {
+              title: "Goal Achieved! 🌳",
+              body: `${user?.name || "A friend"} has completed all their habits for today!`,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error checking for habit completion notification:", err);
+    }
+
     return {
       ...inserted,
       habit_id: inserted.habitId,

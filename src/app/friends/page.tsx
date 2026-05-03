@@ -8,6 +8,8 @@ import BottomNav from "@/components/ui/BottomNav";
 import UserProfileModal from "@/components/social/UserProfileModal";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import type { FeedEntry } from "@/types";
+import { formatDistanceToNow } from "date-fns";
 
 interface FriendUser {
   id: string;
@@ -40,6 +42,8 @@ export default function FriendsPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [selectedUser, setSelectedUser] = useState<FriendUser | null>(null);
+  const [feed, setFeed] = useState<FeedEntry[]>([]);
+  const [activeTab, setActiveTab] = useState<"friends" | "feed">("friends");
 
   useEffect(() => {
     checkAuth().then(() => {
@@ -48,8 +52,9 @@ export default function FriendsPage() {
         router.push("/login");
         return;
       }
-      fetchFriendships();
-      fetchSuggestions();
+      Promise.all([fetchFriendships(), fetchSuggestions(), fetchFeed()]).finally(() => {
+        setIsFetching(false);
+      });
     });
   }, []);
 
@@ -72,8 +77,18 @@ export default function FriendsPage() {
       setFriendships(data);
     } catch (err: any) {
       toast.error(err.message);
-    } finally {
-      setIsFetching(false);
+    }
+  };
+
+  const fetchFeed = async () => {
+    try {
+      const res = await fetch("/api/feed");
+      if (res.ok) {
+        const data = await res.json();
+        setFeed(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch feed", err);
     }
   };
 
@@ -156,6 +171,33 @@ export default function FriendsPage() {
     }
   };
 
+  const handleLike = async (entryId: string, currentlyLiked: boolean) => {
+    // Optimistic UI update
+    setFeed((prev) =>
+      prev.map((item) =>
+        item.id === entryId
+          ? {
+              ...item,
+              has_liked: !currentlyLiked,
+              likes: item.likes + (currentlyLiked ? -1 : 1),
+            }
+          : item
+      )
+    );
+
+    try {
+      await fetch("/api/feed/like", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entryId, like: !currentlyLiked }),
+      });
+    } catch (err) {
+      console.error("Failed to like", err);
+      // Revert optimistic update
+      fetchFeed();
+    }
+  };
+
   if (isLoading || isFetching) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center">
@@ -175,14 +217,33 @@ export default function FriendsPage() {
       <main className="max-w-xl mx-auto px-4 pt-4 space-y-6">
         <div>
           <h2 className="font-headline text-4xl font-extrabold text-primary tracking-tight">
-            Friends
+            Community
           </h2>
           <p className="font-body text-on-surface-variant mt-1">
             Grow your forest together.
           </p>
         </div>
 
-        {/* Invite System / Search */}
+        {/* Tabs */}
+        <div className="flex gap-2 bg-surface-container rounded-full p-1">
+          {(["friends", "feed"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-2.5 rounded-full font-label font-semibold text-sm capitalize transition-all ${
+                activeTab === tab
+                  ? "bg-primary text-on-primary shadow-sm"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              {tab === "friends" ? "Friends" : "Daily Feed"}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === "friends" ? (
+          <>
+            {/* Invite System / Search */}
         <section className="bg-surface-container-low rounded-[2rem] p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
@@ -395,6 +456,67 @@ export default function FriendsPage() {
               ))}
             </div>
           </section>
+        )}
+          </>
+        ) : (
+          <div className="space-y-4">
+            {feed.length === 0 ? (
+              <div className="text-center py-16">
+                <span className="material-symbols-outlined text-5xl text-on-surface-variant/30">
+                  article
+                </span>
+                <p className="font-body text-on-surface-variant mt-4">
+                  No daily thoughts shared yet.
+                </p>
+              </div>
+            ) : (
+              feed.map((entry) => (
+                <div key={entry.id} className="bg-surface-container-low rounded-[2rem] p-5 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-surface-container-high overflow-hidden">
+                      {entry.user.avatar_url ? (
+                        <img src={entry.user.avatar_url} alt="" loading="lazy" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-on-surface-variant/30">
+                          <span className="material-symbols-outlined">person</span>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="font-headline font-bold text-on-surface text-sm">
+                        {entry.user.name || "Anonymous"}
+                      </h4>
+                      <p className="font-body text-[10px] text-on-surface-variant">
+                        {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-surface-container-highest rounded-2xl p-4 mb-3">
+                    <p className="font-body text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
+                      {entry.journal_text}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleLike(entry.id, entry.has_liked)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors ${
+                        entry.has_liked 
+                          ? "bg-primary/10 text-primary" 
+                          : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                      }`}
+                    >
+                      <span className={`material-symbols-outlined text-sm ${entry.has_liked ? "icon-fill" : ""}`}>
+                        favorite
+                      </span>
+                      <span className="font-label text-xs font-bold">{entry.likes}</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         )}
       </main>
 

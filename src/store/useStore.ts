@@ -44,7 +44,7 @@ interface AppState {
   fetchJournalEntries: () => Promise<void>;
   upsertJournalEntry: (
     date: Date,
-    data: { good_text: string; bad_text: string; journal_text: string }
+    data: { good_text: string; bad_text: string; journal_text: string; is_shared?: boolean }
   ) => Promise<void>;
 
   // Alarms

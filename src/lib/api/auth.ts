@@ -27,6 +27,7 @@ export async function getCurrentUser(): Promise<User | null> {
 
   return {
     ...user,
+    friend_updates_enabled: user.friendUpdatesEnabled,
     created_at: user.createdAt.toISOString(),
     updated_at: user.updatedAt.toISOString(),
   } as unknown as User;

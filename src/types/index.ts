@@ -6,6 +6,8 @@ export interface User {
   plan?: "free" | "pro" | "admin";
   onboardingCompleted?: boolean;
   onboarding_completed?: boolean;
+  friend_updates_enabled: boolean;
+  friendUpdatesEnabled?: boolean;
   gender?: "male" | "female" | "other" | "prefer_not_to_say";
   age?: number;
   location?: string;
@@ -61,8 +63,19 @@ export interface JournalEntry {
   good_text: string;
   bad_text: string;
   journal_text: string;
+  is_shared: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface FeedEntry extends JournalEntry {
+  user: {
+    name: string | null;
+    avatar_url: string | null;
+    occupation: string | null;
+  };
+  likes: number;
+  has_liked: boolean;
 }
 
 export interface Alarm {

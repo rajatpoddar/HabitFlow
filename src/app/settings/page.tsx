@@ -9,6 +9,8 @@ import TopBar from "@/components/ui/TopBar";
 import Toggle from "@/components/ui/Toggle";
 import toast from "react-hot-toast";
 import { changePasswordSchema } from "@/lib/validations";
+import Cropper from "react-easy-crop";
+import getCroppedImg from "@/lib/utils/cropImage";
 import {
   requestNotificationPermission,
   isNotificationSupported,
@@ -56,6 +58,7 @@ export default function SettingsPage() {
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notifPermission, setNotifPermission] = useState<string>("default");
+  const [friendUpdatesEnabled, setFriendUpdatesEnabled] = useState(true);
   const [cloudSync] = useState(true);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState("");
@@ -72,6 +75,13 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Cropper state
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [isCropping, setIsCropping] = useState(false);
 
   // Alarm form state
   const [showAlarmForm, setShowAlarmForm] = useState(false);
@@ -90,6 +100,7 @@ export default function SettingsPage() {
       setEditMobile(user.mobile_number || "");
       setEditOccupation(user.occupation || "");
       setEditBio(user.bio || "");
+      setFriendUpdatesEnabled(user.friend_updates_enabled ?? true);
       Promise.all([fetchHabits(), fetchLogs(), fetchAlarms()]);
     });
 
@@ -134,6 +145,20 @@ export default function SettingsPage() {
     }
   };
 
+  const handleFriendUpdatesToggle = async (enabled: boolean) => {
+    setFriendUpdatesEnabled(enabled);
+    try {
+      await updateProfile({ friend_updates_enabled: enabled });
+      if (enabled && notifPermission !== "granted") {
+        toast.success("Updates enabled! (Enable Push Notifications to receive them)");
+      } else {
+        toast.success(enabled ? "Friend updates enabled" : "Friend updates disabled");
+      }
+    } catch {
+      setFriendUpdatesEnabled(!enabled); // revert on error
+    }
+  };
+
   const handleLogout = async () => {
     cancelAllNotifications();
     await logout();
@@ -144,21 +169,41 @@ export default function SettingsPage() {
     if (!user || !e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
     
-    // Check file size (limit to 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Image must be smaller than 5MB");
       return;
     }
 
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      setCropImageSrc(reader.result?.toString() || null);
+    });
+    reader.readAsDataURL(file);
+    e.target.value = ''; // Reset input
+  };
+
+  const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const handleUploadCroppedImage = async () => {
+    if (!user || !cropImageSrc || !croppedAreaPixels) return;
+    setIsCropping(true);
     setIsUploadingAvatar(true);
+    
     try {
-      const publicUrl = await uploadAvatar(user.id, file);
+      const croppedFile = await getCroppedImg(cropImageSrc, croppedAreaPixels);
+      if (!croppedFile) throw new Error("Failed to crop image");
+      
+      const publicUrl = await uploadAvatar(user.id, croppedFile);
       await updateProfile({ avatar_url: publicUrl });
       toast.success("Profile photo updated!");
+      setCropImageSrc(null);
     } catch (err: any) {
       toast.error(err.message || "Failed to upload photo");
     } finally {
       setIsUploadingAvatar(false);
+      setIsCropping(false);
     }
   };
 
@@ -602,6 +647,21 @@ export default function SettingsPage() {
             </div>
             <Toggle checked={cloudSync} onChange={() => {}} />
           </div>
+
+          <div className="h-px w-[85%] mx-auto bg-surface-variant/50" />
+
+          <div className="p-5 flex items-center justify-between hover:bg-surface-container/50 transition-colors">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+                <span className="material-symbols-outlined">groups</span>
+              </div>
+              <div>
+                <h4 className="font-headline text-base font-bold text-on-surface">Friend Updates</h4>
+                <p className="font-body text-sm text-on-surface-variant">Notify when friends share thoughts or finish habits</p>
+              </div>
+            </div>
+            <Toggle checked={friendUpdatesEnabled} onChange={handleFriendUpdatesToggle} />
+          </div>
         </section>
 
         {/* Subscription / Plan Card */}
@@ -747,6 +807,71 @@ export default function SettingsPage() {
                 className="flex-1 py-3 rounded-full bg-error text-on-error font-label font-semibold"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Crop Modal */}
+      {cropImageSrc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-on-surface/50 backdrop-blur-sm"
+            onClick={() => setCropImageSrc(null)}
+          />
+          <div className="relative bg-surface rounded-[2rem] p-6 max-w-sm w-full shadow-ambient-lg flex flex-col h-[70vh]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-headline font-bold text-xl text-on-surface">Crop Photo</h3>
+              <button onClick={() => setCropImageSrc(null)} className="text-on-surface-variant hover:text-on-surface">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div className="relative flex-1 rounded-[1.5rem] overflow-hidden bg-black/5">
+              <Cropper
+                image={cropImageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+              />
+            </div>
+            
+            <div className="mt-4 px-2">
+              <input
+                type="range"
+                value={zoom}
+                min={1}
+                max={3}
+                step={0.1}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="w-full accent-primary"
+              />
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setCropImageSrc(null)}
+                className="flex-1 py-3 rounded-full bg-surface-container text-on-surface font-label font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUploadCroppedImage}
+                disabled={isCropping}
+                className="flex-1 py-3 rounded-full bg-primary text-on-primary font-label font-semibold disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {isCropping ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
+                    Saving...
+                  </>
+                ) : "Done"}
               </button>
             </div>
           </div>
