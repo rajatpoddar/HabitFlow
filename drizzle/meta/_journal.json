@@ -15,6 +15,13 @@
       "when": 1777806289431,
       "tag": "0001_broken_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777826756544,
+      "tag": "0002_little_unicorn",
+      "breakpoints": true
     }
   ]
 }
