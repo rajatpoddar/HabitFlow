@@ -34,7 +34,12 @@ export default function DashboardPage() {
       const { user } = useStore.getState();
       if (!user) { router.push("/login"); return; }
       // Parallel fetch — no waterfall
-      Promise.all([fetchHabits(), fetchLogs()]);
+      Promise.all([fetchHabits(), fetchLogs()]).then(() => {
+        const { habits } = useStore.getState();
+        if (habits.length === 0) {
+          router.push("/onboarding");
+        }
+      });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

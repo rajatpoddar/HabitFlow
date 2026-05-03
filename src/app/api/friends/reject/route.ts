@@ -1,25 +1,31 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { friendships } from "@/lib/db/schema";
+import { eq, or, and } from "drizzle-orm";
 
 export async function POST(req: Request) {
   try {
     const { friendshipId } = await req.json();
     if (!friendshipId) return NextResponse.json({ error: "friendshipId is required" }, { status: 400 });
 
-    const supabase = createSupabaseServerClient();
-    const { data: userData, error: authError } = await supabase.auth.getUser();
+    const session = await auth();
 
-    if (authError || !userData.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { error } = await supabase
-      .from("friendships")
-      .delete()
-      .eq("id", friendshipId)
-      .or(`receiver_id.eq.${userData.user.id},requester_id.eq.${userData.user.id}`);
-
-    if (error) throw error;
+    await db
+      .delete(friendships)
+      .where(
+        and(
+          eq(friendships.id, friendshipId),
+          or(
+            eq(friendships.receiverId, session.user.id),
+            eq(friendships.requesterId, session.user.id)
+          )
+        )
+      );
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

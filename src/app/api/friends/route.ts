@@ -1,38 +1,52 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { friendships, users } from "@/lib/db/schema";
+import { eq, or } from "drizzle-orm";
 
 export async function GET() {
   try {
-    const supabase = createSupabaseServerClient();
-    const { data: userData, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !userData.user) {
+    const session = await auth();
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: friendships, error } = await supabase
-      .from("friendships")
-      .select(`
-        id,
-        requester_id,
-        receiver_id,
-        status,
-        created_at,
-        requester:user_profiles!requester_id(id, name, avatar_url, social_stats(total_forest_health)),
-        receiver:user_profiles!receiver_id(id, name, avatar_url, social_stats(total_forest_health))
-      `)
-      .or(`requester_id.eq.${userData.user.id},receiver_id.eq.${userData.user.id}`);
+    const userId = session.user.id;
 
-    if (error) {
-      if (error.code === "PGRST116" || error.message.includes("friendships' not found")) {
-        return NextResponse.json({ 
-          error: "Social features (friendships) table is missing. Please run migrations 007 and 009." 
-        }, { status: 500 });
-      }
-      throw error;
-    }
+    // Fetch friendships using Drizzle
+    const userFriendships = await db
+      .select({
+        id: friendships.id,
+        requester_id: friendships.requesterId,
+        receiver_id: friendships.receiverId,
+        status: friendships.status,
+        created_at: friendships.createdAt,
+      })
+      .from(friendships)
+      .where(or(eq(friendships.requesterId, userId), eq(friendships.receiverId, userId)));
 
-    return NextResponse.json(friendships);
+    // Fetch profiles manually to simulate the join
+    const enrichedFriendships = await Promise.all(
+      userFriendships.map(async (f) => {
+        const [requester] = await db
+          .select({ id: users.id, name: users.name, image: users.image })
+          .from(users)
+          .where(eq(users.id, f.requester_id));
+
+        const [receiver] = await db
+          .select({ id: users.id, name: users.name, image: users.image })
+          .from(users)
+          .where(eq(users.id, f.receiver_id));
+
+        return {
+          ...f,
+          requester: requester ? { ...requester, avatar_url: requester.image, social_stats: [{ total_forest_health: 0 }] } : null,
+          receiver: receiver ? { ...receiver, avatar_url: receiver.image, social_stats: [{ total_forest_health: 0 }] } : null,
+        };
+      })
+    );
+
+    return NextResponse.json(enrichedFriendships);
   } catch (error: any) {
     console.error("Friends GET Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

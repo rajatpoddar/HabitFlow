@@ -1,56 +1,50 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { friendships, users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function POST(req: Request) {
   try {
     const { email, userId } = await req.json();
     
-    const supabase = createSupabaseServerClient();
-    const { data: userData, error: authError } = await supabase.auth.getUser();
+    const session = await auth();
 
-    if (authError || !userData.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     let targetUserId = userId;
 
     if (!targetUserId && email) {
-      if (email === userData.user.email) {
+      if (email === session.user.email) {
         return NextResponse.json({ error: "Cannot add yourself" }, { status: 400 });
       }
 
-      // Use the new RPC to find user ID by email
-      const { data: rpcUserId, error: searchError } = await supabase
-        .rpc("get_user_id_by_email", { p_email: email });
+      // Use Drizzle to find user ID by email
+      const [targetUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
 
-      if (searchError || !rpcUserId) {
+      if (!targetUser) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
-      targetUserId = rpcUserId;
+      targetUserId = targetUser.id;
     }
 
     if (!targetUserId) {
       return NextResponse.json({ error: "User ID or Email is required" }, { status: 400 });
     }
 
-    if (targetUserId === userData.user.id) {
+    if (targetUserId === session.user.id) {
       return NextResponse.json({ error: "Cannot add yourself" }, { status: 400 });
     }
 
-    const { error: insertError } = await supabase
-      .from("friendships")
-      .insert({
-        requester_id: userData.user.id,
-        receiver_id: targetUserId,
+    try {
+      await db.insert(friendships).values({
+        requesterId: session.user.id,
+        receiverId: targetUserId,
         status: "pending"
       });
-
-    if (insertError) {
-      if (insertError.code === "PGRST116" || insertError.message.includes("friendships' not found")) {
-        return NextResponse.json({ 
-          error: "Social features are not fully set up. Please run migration 009." 
-        }, { status: 500 });
-      }
+    } catch (insertError: any) {
       if (insertError.code === "23505") {
         return NextResponse.json({ error: "Friendship already exists or is pending" }, { status: 400 });
       }
@@ -59,11 +53,10 @@ export async function POST(req: Request) {
 
     // Send Push Notification to the receiver
     try {
-      const { data: requesterProfile } = await supabase
-        .from("user_profiles")
-        .select("name")
-        .eq("id", userData.user.id)
-        .single();
+      const [requesterProfile] = await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, session.user.id));
 
       const { sendPushNotification } = await import("@/lib/push");
       await sendPushNotification(targetUserId, {

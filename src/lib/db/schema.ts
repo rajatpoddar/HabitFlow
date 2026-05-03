@@ -155,3 +155,19 @@ export const aiInsights = pgTable("ai_insights", {
   unq: uniqueIndex("ai_insights_user_week_idx").on(t.userId, t.weekStart),
 }));
 
+export const friendships = pgTable("friendships", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  requesterId: uuid("requester_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  receiverId: uuid("receiver_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  status: text("status", { enum: ["pending", "accepted", "rejected"] }).default("pending").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  unq: uniqueIndex("unique_friendship").on(t.requesterId, t.receiverId),
+}));
+
+
