@@ -27,6 +27,7 @@ export async function getCurrentUser(): Promise<User | null> {
 
   return {
     ...user,
+    avatar: user.image,
     friend_updates_enabled: user.friendUpdatesEnabled,
     created_at: user.createdAt.toISOString(),
     updated_at: user.updatedAt.toISOString(),

@@ -650,14 +650,14 @@ export default function SettingsPage() {
 
           <div className="h-px w-[85%] mx-auto bg-surface-variant/50" />
 
-          <div className="p-5 flex items-center justify-between hover:bg-surface-container/50 transition-colors">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+          <div className="p-4 sm:p-5 flex items-start justify-between gap-3 hover:bg-surface-container/50 transition-colors">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary flex-shrink-0">
                 <span className="material-symbols-outlined">groups</span>
               </div>
-              <div>
+              <div className="min-w-0">
                 <h4 className="font-headline text-base font-bold text-on-surface">Friend Updates</h4>
-                <p className="font-body text-sm text-on-surface-variant">Notify when friends share thoughts or finish habits</p>
+                <p className="font-body text-sm text-on-surface-variant line-clamp-2">Notify when friends share thoughts or finish habits</p>
               </div>
             </div>
             <Toggle checked={friendUpdatesEnabled} onChange={handleFriendUpdatesToggle} />
