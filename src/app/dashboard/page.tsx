@@ -51,14 +51,29 @@ export default function DashboardPage() {
     [logs, todayStr]
   );
 
-  const completedCount = useMemo(
-    () => todayLogs.filter((l) => l.status === "done").length,
-    [todayLogs]
-  );
+  const completedCount = useMemo(() => {
+    let count = 0;
+    habits.forEach((habit) => {
+      const log = todayLogs.find((l) => l.habit_id === habit.id);
+      if (habit.type === "good") {
+        if (log?.status === "done") count++;
+      } else {
+        // bad habit
+        if (habit.daily_limit && habit.daily_limit > 0) {
+          // Successfully avoided if no log or count is within limit
+          if (!log || log.count <= habit.daily_limit) count++;
+        } else {
+          // No limit requires explicit toggle
+          if (log?.status === "done") count++;
+        }
+      }
+    });
+    return count;
+  }, [todayLogs, habits]);
 
   const completionPct = useMemo(
     () =>
-      habits.length > 0 ? Math.round((completedCount / habits.length) * 100) : 0,
+      habits.length > 0 ? Math.min(100, Math.round((completedCount / habits.length) * 100)) : 0,
     [completedCount, habits.length]
   );
 
@@ -274,7 +289,13 @@ export default function DashboardPage() {
                     Breaking Bad Habits
                   </h3>
                   <span className="font-body text-sm text-on-surface-variant">
-                    {badHabits.filter((h) => getLogForHabit(h.id)?.status === "done").length}/{badHabits.length} avoided
+                    {badHabits.filter((h) => {
+                      const log = getLogForHabit(h.id);
+                      if (h.daily_limit && h.daily_limit > 0) {
+                        return !log || log.count <= h.daily_limit;
+                      }
+                      return log?.status === "done";
+                    }).length}/{badHabits.length} avoided
                   </span>
                 </div>
                 <div className="bg-tertiary/5 rounded-[1.5rem] p-4 mb-3">

@@ -279,12 +279,25 @@ export default function SettingsPage() {
   const totalHabits = habits.length;
 
   const completedToday = useMemo(() => {
-    return logs.filter((l) => l.date === todayStr && l.status === "done").length;
-  }, [logs, todayStr]);
+    let count = 0;
+    habits.forEach((habit) => {
+      const log = logs.find((l) => l.date === todayStr && l.habit_id === habit.id);
+      if (habit.type === "good") {
+        if (log?.status === "done") count++;
+      } else {
+        if (habit.daily_limit && habit.daily_limit > 0) {
+          if (!log || log.count <= habit.daily_limit) count++;
+        } else {
+          if (log?.status === "done") count++;
+        }
+      }
+    });
+    return count;
+  }, [logs, todayStr, habits]);
 
   const completionRate = useMemo(() => {
     if (totalHabits === 0) return 0;
-    return Math.round((completedToday / totalHabits) * 100);
+    return Math.min(100, Math.round((completedToday / totalHabits) * 100));
   }, [completedToday, totalHabits]);
 
   const currentStreak = useMemo(() => {

@@ -29,6 +29,7 @@ export async function getCurrentUser(): Promise<User | null> {
     ...user,
     avatar: user.image,
     friend_updates_enabled: user.friendUpdatesEnabled,
+    mobile_number: user.mobileNumber,
     created_at: user.createdAt.toISOString(),
     updated_at: user.updatedAt.toISOString(),
   } as unknown as User;
@@ -47,16 +48,38 @@ export async function updateProfile(
   userId: string,
   data: any
 ): Promise<any> {
+  const updateData: any = { ...data, updatedAt: new Date() };
+
+  if (updateData.avatar_url !== undefined) {
+    updateData.image = updateData.avatar_url;
+    delete updateData.avatar_url;
+  }
+  if (updateData.mobile_number !== undefined) {
+    updateData.mobileNumber = updateData.mobile_number;
+    delete updateData.mobile_number;
+  }
+  if (updateData.friend_updates_enabled !== undefined) {
+    updateData.friendUpdatesEnabled = updateData.friend_updates_enabled;
+    delete updateData.friend_updates_enabled;
+  }
+
   const updated = await db
     .update(users)
-    .set({
-      ...data,
-      updatedAt: new Date(),
-    })
+    .set(updateData)
     .where(eq(users.id, userId))
     .returning();
   
-  return updated[0];
+  const user = updated[0];
+  if (!user) throw new Error("User not found");
+
+  return {
+    ...user,
+    avatar: user.image,
+    friend_updates_enabled: user.friendUpdatesEnabled,
+    mobile_number: user.mobileNumber,
+    created_at: user.createdAt.toISOString(),
+    updated_at: user.updatedAt.toISOString(),
+  };
 }
 
 export async function deleteAccount(userId: string): Promise<void> {
