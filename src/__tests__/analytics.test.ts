@@ -1,11 +1,3 @@
-// Mock Supabase before any imports that use it
-jest.mock("@/lib/supabase", () => ({
-  supabase: {
-    from: jest.fn(),
-    auth: { getUser: jest.fn() },
-  },
-}));
-
 import { getDailyStats, getOverallStreak, getGoodVsBadStats } from "@/lib/api/analytics";
 import { calculateStreak } from "@/lib/api/habits";
 import type { Habit, HabitLog } from "@/types";

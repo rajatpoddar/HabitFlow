@@ -1,5 +1,7 @@
 import webpush from "web-push";
-import { createSupabaseAdminClient } from "./supabase-server";
+import { db } from "@/lib/db";
+import { pushSubscriptions } from "@/lib/db/schema";
+import { eq, inArray } from "drizzle-orm";
 
 // Initialize web-push with VAPID keys from environment variables
 const vapidDetails = {
@@ -18,15 +20,12 @@ if (vapidDetails.publicKey && vapidDetails.privateKey) {
 
 export async function sendPushNotification(userId: string, payload: { title: string; body: string; icon?: string; data?: any }) {
   try {
-    const adminClient = createSupabaseAdminClient();
-    
     // Fetch all push subscriptions for the user
-    const { data: subscriptions, error } = await adminClient
-      .from("push_subscriptions")
-      .select("*")
-      .eq("user_id", userId);
+    const subscriptions = await db
+      .select()
+      .from(pushSubscriptions)
+      .where(eq(pushSubscriptions.userId, userId));
 
-    if (error) throw error;
     if (!subscriptions || subscriptions.length === 0) return;
 
     const notificationPayload = JSON.stringify(payload);
@@ -50,13 +49,12 @@ export async function sendPushNotification(userId: string, payload: { title: str
     // Clean up expired subscriptions
     const expiredSubscriptions = results
       .map((res, i) => (res.status === "rejected" && (res.reason.statusCode === 404 || res.reason.statusCode === 410) ? subscriptions[i].id : null))
-      .filter(Boolean);
+      .filter((id): id is string => id !== null);
 
     if (expiredSubscriptions.length > 0) {
-      await adminClient
-        .from("push_subscriptions")
-        .delete()
-        .in("id", expiredSubscriptions);
+      await db
+        .delete(pushSubscriptions)
+        .where(inArray(pushSubscriptions.id, expiredSubscriptions));
     }
   } catch (error) {
     console.error("Error sending push notification:", error);

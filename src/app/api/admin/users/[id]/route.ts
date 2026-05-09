@@ -1,132 +1,86 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase-server";
 import { requireAdmin } from "@/lib/api/admin";
-import { banUserSchema, updateUserPlanSchema } from "@/lib/validations";
 import { checkAdminRateLimit, getClientIp } from "@/lib/rate-limit";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 
-// PATCH /api/admin/users/[id] — ban, unban, or change plan
+const banSchema = z.object({
+  reason: z.string().min(1, "Reason is required"),
+});
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const ip = getClientIp(request);
-  const { success } = await checkAdminRateLimit(`admin-patch:${ip}`);
+  const { success } = await checkAdminRateLimit(`admin-user-patch:${ip}`);
   if (!success) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 
-  const sessionClient = createSupabaseServerClient();
-  const admin = await requireAdmin(sessionClient);
+  const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  if (params.id === admin.id) {
-    return NextResponse.json({ error: "Cannot modify your own account" }, { status: 400 });
-  }
+  try {
+    const { action, ...data } = await request.json();
 
-  // Use service-role for writes
-  const supabase = createSupabaseAdminClient();
+    if (action === "ban") {
+      const parsed = banSchema.safeParse(data);
+      if (!parsed.success) return NextResponse.json({ error: parsed.error.message }, { status: 400 });
 
-  let body: unknown;
-  try { body = await request.json(); } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  }
+      await db
+        .update(users)
+        .set({ isBanned: true, banReason: parsed.data.reason, updatedAt: new Date() })
+        .where(eq(users.id, params.id));
 
-  const action = (body as any)?.action;
-
-  if (action === "ban") {
-    const parsed = banUserSchema.safeParse({ userId: params.id, reason: (body as any).reason });
-    if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 422 });
+      return NextResponse.json({ success: true });
     }
-    const { error } = await supabase
-      .from("user_profiles")
-      .update({ is_banned: true, ban_reason: parsed.data.reason })
-      .eq("id", params.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    await supabase.from("audit_log").insert({
-      actor_id: admin.id,
-      action: "ban_user",
-      target_type: "user",
-      target_id: params.id,
-      metadata: { reason: parsed.data.reason },
-    });
+    if (action === "unban") {
+      await db
+        .update(users)
+        .set({ isBanned: false, banReason: null, updatedAt: new Date() })
+        .where(eq(users.id, params.id));
 
-    return NextResponse.json({ success: true });
-  }
-
-  if (action === "unban") {
-    const { error } = await supabase
-      .from("user_profiles")
-      .update({ is_banned: false, ban_reason: null })
-      .eq("id", params.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-    await supabase.from("audit_log").insert({
-      actor_id: admin.id,
-      action: "unban_user",
-      target_type: "user",
-      target_id: params.id,
-    });
-
-    return NextResponse.json({ success: true });
-  }
-
-  if (action === "update_plan") {
-    const parsed = updateUserPlanSchema.safeParse({ userId: params.id, plan: (body as any).plan });
-    if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 422 });
+      return NextResponse.json({ success: true });
     }
-    const { error } = await supabase
-      .from("user_profiles")
-      .update({ plan: parsed.data.plan })
-      .eq("id", params.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    await supabase.from("audit_log").insert({
-      actor_id: admin.id,
-      action: "update_plan",
-      target_type: "user",
-      target_id: params.id,
-      metadata: { plan: parsed.data.plan },
-    });
+    if (action === "change_plan") {
+      if (!["free", "pro", "admin"].includes(data.plan)) {
+        return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+      }
 
-    return NextResponse.json({ success: true });
+      await db
+        .update(users)
+        .set({ plan: data.plan, updatedAt: new Date() })
+        .where(eq(users.id, params.id));
+
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
 
-// DELETE /api/admin/users/[id] — delete user
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const ip = getClientIp(request);
-  const { success } = await checkAdminRateLimit(`admin-delete:${ip}`);
+  const { success } = await checkAdminRateLimit(`admin-user-delete:${ip}`);
   if (!success) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 
-  const sessionClient = createSupabaseServerClient();
-  const admin = await requireAdmin(sessionClient);
+  const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  if (params.id === admin.id) {
-    return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
+  try {
+    // Delete user from DB (cascade handles related data)
+    await db.delete(users).where(eq(users.id, params.id));
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  const supabase = createSupabaseAdminClient();
-
-  const { error } = await supabase
-    .from("user_profiles")
-    .update({ is_banned: true, ban_reason: "Account deleted by admin" })
-    .eq("id", params.id);
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  await supabase.from("audit_log").insert({
-    actor_id: admin.id,
-    action: "delete_user",
-    target_type: "user",
-    target_id: params.id,
-  });
-
-  return NextResponse.json({ success: true });
 }

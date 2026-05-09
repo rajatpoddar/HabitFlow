@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import toast from "react-hot-toast";
 
 export default function ForgotPasswordPage() {
@@ -15,12 +14,9 @@ export default function ForgotPasswordPage() {
     if (!email) return;
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
-      setSent(true);
-      toast.success("Reset link sent! Check your email.");
+      // TODO: Implement password reset with NextAuth and Postgres
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.error("Password reset is not yet implemented. Please contact support.");
     } catch (err: any) {
       toast.error(err.message || "Failed to send reset email");
     } finally {

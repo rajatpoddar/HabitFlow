@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { db } from '@/lib/db';
+import { users } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { sendEmail } from '@/lib/email';
 import WeeklyDigestEmail from '@/emails/WeeklyDigestEmail';
 
@@ -13,37 +15,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Get all users who opted in to weekly digest
+    const usersList = await db
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(eq(users.emailWeeklyDigest, true));
 
-    const { data: users } = await supabase
-      .from('user_profiles')
-      .select('id, name, email_weekly_digest')
-      .eq('email_weekly_digest', true);
-
-    if (!users || users.length === 0) {
+    if (!usersList || usersList.length === 0) {
       return NextResponse.json({ success: true, sent: 0 });
     }
 
     let sentCount = 0;
 
-    for (const userProfile of users) {
-      const { data: authUser } = await supabase.auth.admin.getUserById(userProfile.id);
-      if (!authUser?.user?.email) continue;
+    for (const user of usersList) {
+      if (!user.email) continue;
 
-      // Calculate weekly stats (simplified)
+      // In production, calculate these properly from the database
       const completionRate = 75; // Placeholder
       const bestStreak = 7; // Placeholder
       const mostCompletedHabit = 'Morning Run'; // Placeholder
 
       try {
         await sendEmail({
-          to: authUser.user.email,
-          subject: 'Your Weekly Habit Summary 📊',
+          to: user.email,
+          subject: 'Your Weekly HabitFlow Digest 🌱',
           react: WeeklyDigestEmail({
-            firstName: userProfile.name?.split(' ')[0] || 'there',
+            firstName: user.name?.split(' ')[0] || 'there',
             completionRate,
             bestStreak,
             mostCompletedHabit,
@@ -52,13 +49,13 @@ export async function POST(request: NextRequest) {
         });
         sentCount++;
       } catch (error) {
-        console.error(`Failed to send weekly digest to ${authUser.user.email}:`, error);
+        console.error(`Failed to send weekly digest to ${user.email}:`, error);
       }
     }
 
     return NextResponse.json({ success: true, sent: sentCount });
   } catch (error) {
-    console.error('Error in weekly digest email route:', error);
+    console.error('Error in weekly digest route:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

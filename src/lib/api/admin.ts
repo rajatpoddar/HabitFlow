@@ -1,24 +1,22 @@
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 /**
  * Verifies the calling user is authenticated and has the "admin" plan.
  * Returns the user object on success, or null if unauthorized.
  */
-export async function requireAdmin(
-  supabase: ReturnType<typeof createSupabaseServerClient>
-) {
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) return null;
+export async function requireAdmin() {
+  const session = await auth();
+  if (!session?.user?.id) return null;
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("plan")
-    .eq("id", user.id)
-    .single();
+  const [user] = await db
+    .select({ plan: users.plan })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
 
-  if (profile?.plan !== "admin") return null;
-  return user;
+  if (user?.plan !== "admin") return null;
+  return session.user;
 }

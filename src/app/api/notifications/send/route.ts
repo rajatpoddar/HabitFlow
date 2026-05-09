@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
+import { db } from '@/lib/db';
+import { habits, pushSubscriptions } from '@/lib/db/schema';
+import { eq, inArray, like, and } from 'drizzle-orm';
 
 // Configure web-push with VAPID keys
 if (process.env.VAPID_PRIVATE_KEY && process.env.VAPID_SUBJECT) {
@@ -21,12 +23,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Use service role key for admin access
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
     // Get current time window
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -38,22 +34,24 @@ export async function POST(request: NextRequest) {
 
     // Find all habits with reminders enabled for this time
     // Using .like matches both '09:30' and '09:30:00'
-    const { data: habits, error: habitsError } = await supabase
-      .from('habits')
-      .select('id, name, user_id, reminder_time, icon')
-      .eq('reminder_enabled', true)
-      .eq('is_active', true)
-      .like('reminder_time', `${timePrefix}%`);
-
-    if (habitsError) {
-      console.error('Error fetching habits:', habitsError);
-      return NextResponse.json(
-        { error: 'Failed to fetch habits' },
-        { status: 500 }
+    const habitsList = await db
+      .select({
+        id: habits.id,
+        name: habits.name,
+        userId: habits.userId,
+        reminderTime: habits.reminderTime,
+        icon: habits.icon,
+      })
+      .from(habits)
+      .where(
+        and(
+          eq(habits.reminderEnabled, true),
+          eq(habits.isActive, true),
+          like(habits.reminderTime, `${timePrefix}%`)
+        )
       );
-    }
 
-    if (!habits || habits.length === 0) {
+    if (!habitsList || habitsList.length === 0) {
       return NextResponse.json({
         success: true,
         message: 'No habits to notify',
@@ -63,46 +61,38 @@ export async function POST(request: NextRequest) {
     }
 
     // Get unique user IDs
-    const userIds = Array.from(new Set(habits.map((h) => h.user_id)));
+    const userIds = Array.from(new Set(habitsList.map((h) => h.userId)));
 
     // Fetch push subscriptions for these users
-    const { data: subscriptions, error: subsError } = await supabase
-      .from('push_subscriptions')
-      .select('*')
-      .in('user_id', userIds);
-
-    if (subsError) {
-      console.error('Error fetching subscriptions:', subsError);
-      return NextResponse.json(
-        { error: 'Failed to fetch subscriptions' },
-        { status: 500 }
-      );
-    }
+    const subscriptions = await db
+      .select()
+      .from(pushSubscriptions)
+      .where(inArray(pushSubscriptions.userId, userIds));
 
     if (!subscriptions || subscriptions.length === 0) {
       return NextResponse.json({
         success: true,
         message: 'No subscriptions found',
-        habitsFound: habits.length,
+        habitsFound: habitsList.length,
         sent: 0,
       });
     }
 
     // Group habits by user
-    const habitsByUser = habits.reduce((acc, habit) => {
-      if (!acc[habit.user_id]) {
-        acc[habit.user_id] = [];
+    const habitsByUser = habitsList.reduce((acc, habit) => {
+      if (!acc[habit.userId]) {
+        acc[habit.userId] = [];
       }
-      acc[habit.user_id].push(habit);
+      acc[habit.userId].push(habit);
       return acc;
-    }, {} as Record<string, typeof habits>);
+    }, {} as Record<string, typeof habitsList>);
 
     // Send notifications
     let sentCount = 0;
     const errors: string[] = [];
 
     for (const subscription of subscriptions) {
-      const userHabits = habitsByUser[subscription.user_id];
+      const userHabits = habitsByUser[subscription.userId];
       if (!userHabits || userHabits.length === 0) continue;
 
       // Send one notification per habit
@@ -134,10 +124,9 @@ export async function POST(request: NextRequest) {
 
           // If subscription is invalid, remove it
           if (error.statusCode === 410 || error.statusCode === 404) {
-            await supabase
-              .from('push_subscriptions')
-              .delete()
-              .eq('id', subscription.id);
+            await db
+              .delete(pushSubscriptions)
+              .where(eq(pushSubscriptions.id, subscription.id));
           }
         }
       }
@@ -148,8 +137,8 @@ export async function POST(request: NextRequest) {
       sent: sentCount,
       errors: errors.length > 0 ? errors : undefined,
     });
-  } catch (error) {
-    console.error('Error in send notifications route:', error);
+  } catch (error: any) {
+    console.error('Error in send route:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

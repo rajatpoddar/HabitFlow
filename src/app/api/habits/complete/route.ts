@@ -1,33 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { auth } from '@/auth';
+import { db } from '@/lib/db';
+import { habits, habitLogs } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { format } from 'date-fns';
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
+    const session = await auth();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -42,26 +24,34 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify habit belongs to user
-    const { data: habit, error: habitError } = await supabase
-      .from('habits')
-      .select('id')
-      .eq('id', habitId)
-      .eq('user_id', user.id)
-      .single();
+    const [habit] = await db
+      .select({ id: habits.id })
+      .from(habits)
+      .where(
+        and(
+          eq(habits.id, habitId),
+          eq(habits.userId, session.user.id)
+        )
+      )
+      .limit(1);
 
-    if (habitError || !habit) {
+    if (!habit) {
       return NextResponse.json({ error: 'Habit not found' }, { status: 404 });
     }
 
     const dateStr = date ? format(new Date(date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
 
     // Check if log already exists
-    const { data: existingLog } = await supabase
-      .from('habit_logs')
-      .select('*')
-      .eq('habit_id', habitId)
-      .eq('date', dateStr)
-      .maybeSingle();
+    const [existingLog] = await db
+      .select()
+      .from(habitLogs)
+      .where(
+        and(
+          eq(habitLogs.habitId, habitId),
+          eq(habitLogs.date, dateStr)
+        )
+      )
+      .limit(1);
 
     if (existingLog) {
       // Already completed
@@ -69,24 +59,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Create completion log
-    const { data: log, error: logError } = await supabase
-      .from('habit_logs')
-      .insert({
-        habit_id: habitId,
+    const [log] = await db
+      .insert(habitLogs)
+      .values({
+        habitId,
         date: dateStr,
         status: 'done',
         count: 0,
       })
-      .select()
-      .single();
-
-    if (logError) {
-      console.error('Error creating habit log:', logError);
-      return NextResponse.json(
-        { error: 'Failed to complete habit' },
-        { status: 500 }
-      );
-    }
+      .returning();
 
     return NextResponse.json({ success: true, log });
   } catch (error) {

@@ -1,33 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { auth } from '@/auth';
+import { db } from '@/lib/db';
+import { users, habits, habitLogs } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { format } from 'date-fns';
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
+    const session = await auth();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -42,20 +24,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user profile to check streak freezes
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('streak_freezes, plan')
-      .eq('id', user.id)
-      .single();
+    const [profile] = await db
+      .select({ streakFreezes: users.streakFreezes, plan: users.plan })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1);
 
-    if (profileError || !profile) {
+    if (!profile) {
       return NextResponse.json(
         { error: 'Failed to fetch user profile' },
         { status: 500 }
       );
     }
 
-    if (profile.streak_freezes <= 0) {
+    if (profile.streakFreezes <= 0) {
       return NextResponse.json(
         { error: 'No streak freezes available' },
         { status: 400 }
@@ -63,26 +45,34 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify habit belongs to user
-    const { data: habit, error: habitError } = await supabase
-      .from('habits')
-      .select('id')
-      .eq('id', habitId)
-      .eq('user_id', user.id)
-      .single();
+    const [habit] = await db
+      .select({ id: habits.id })
+      .from(habits)
+      .where(
+        and(
+          eq(habits.id, habitId),
+          eq(habits.userId, session.user.id)
+        )
+      )
+      .limit(1);
 
-    if (habitError || !habit) {
+    if (!habit) {
       return NextResponse.json({ error: 'Habit not found' }, { status: 404 });
     }
 
     const today = format(new Date(), 'yyyy-MM-dd');
 
     // Check if already has a log for today
-    const { data: existingLog } = await supabase
-      .from('habit_logs')
-      .select('id')
-      .eq('habit_id', habitId)
-      .eq('date', today)
-      .maybeSingle();
+    const [existingLog] = await db
+      .select({ id: habitLogs.id })
+      .from(habitLogs)
+      .where(
+        and(
+          eq(habitLogs.habitId, habitId),
+          eq(habitLogs.date, today)
+        )
+      )
+      .limit(1);
 
     if (existingLog) {
       return NextResponse.json(
@@ -92,39 +82,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Create freeze log
-    const { error: logError } = await supabase.from('habit_logs').insert({
-      habit_id: habitId,
+    await db.insert(habitLogs).values({
+      habitId,
       date: today,
       status: 'done',
       count: 0,
-      log_type: 'freeze',
     });
 
-    if (logError) {
-      console.error('Error creating freeze log:', logError);
-      return NextResponse.json(
-        { error: 'Failed to freeze streak' },
-        { status: 500 }
-      );
-    }
-
     // Deduct one freeze
-    const { error: updateError } = await supabase
-      .from('user_profiles')
-      .update({ streak_freezes: profile.streak_freezes - 1 })
-      .eq('id', user.id);
-
-    if (updateError) {
-      console.error('Error updating streak freezes:', updateError);
-      return NextResponse.json(
-        { error: 'Failed to update streak freezes' },
-        { status: 500 }
-      );
-    }
+    await db
+      .update(users)
+      .set({ streakFreezes: profile.streakFreezes - 1 })
+      .where(eq(users.id, session.user.id));
 
     return NextResponse.json({
       success: true,
-      remaining: profile.streak_freezes - 1,
+      remaining: profile.streakFreezes - 1,
     });
   } catch (error) {
     console.error('Error in freeze streak route:', error);

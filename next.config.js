@@ -54,18 +54,11 @@ const nextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60,
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "*.supabase.co",
-        pathname: "/storage/v1/object/public/**",
-      },
-    ],
   },
 
   // Bundle optimization
   experimental: {
-    optimizePackageImports: ["recharts", "date-fns", "@supabase/supabase-js"],
+    optimizePackageImports: ["recharts", "date-fns"],
   },
 };
 

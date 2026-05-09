@@ -69,7 +69,7 @@ export default function AddHabitModal({ onClose }: AddHabitModalProps) {
         target_per_day: targetPerDay,
         is_active: true,
         reminder_enabled: reminderEnabled,
-        // Supabase TIME columns store HH:MM:SS — append seconds so the cron query matches
+        // Postgres TIME columns store HH:MM:SS — append seconds so the cron query matches
         reminder_time: reminderEnabled ? `${reminderTime}:00` : null,
         daily_limit: type === "bad" ? dailyLimit : null,
       });

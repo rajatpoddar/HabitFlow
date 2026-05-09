@@ -230,7 +230,7 @@ export default function SettingsPage() {
 
   const handleChangePassword = async () => {
     const parsed = changePasswordSchema.safeParse({
-      currentPassword: "placeholder", // Supabase doesn't require current password for updateUser
+      currentPassword: "placeholder", // Auth doesn't require current password for updateUser
       newPassword,
       confirmNewPassword,
     });

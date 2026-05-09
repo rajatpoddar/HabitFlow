@@ -3,9 +3,9 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
 import sharp from "sharp";
+import { join } from "path";
+import { writeFile, mkdir } from "fs/promises";
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -17,18 +17,18 @@ export async function POST(request: NextRequest) {
     if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    // Convert to webp and append unique timestamp
-    const filename = `${session.user.id}-${Date.now()}.webp`;
     
-    // Ensure uploads directory exists
-    const uploadDir = join(process.cwd(), "public", "uploads", "avatars");
-    await mkdir(uploadDir, { recursive: true });
-
     // Use Sharp to resize, compress and convert to WebP to guarantee it's under 50KB
     const compressedBuffer = await sharp(buffer)
       .resize({ width: 400, height: 400, fit: "cover" })
       .webp({ quality: 60 })
       .toBuffer();
+
+    const filename = `avatar-${session.user.id}-${Date.now()}.webp`;
+    
+    // Ensure uploads directory exists
+    const uploadDir = join(process.cwd(), "public", "uploads", "avatars");
+    await mkdir(uploadDir, { recursive: true });
 
     const path = join(uploadDir, filename);
     await writeFile(path, compressedBuffer);

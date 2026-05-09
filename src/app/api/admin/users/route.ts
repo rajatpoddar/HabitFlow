@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase-server";
 import { requireAdmin } from "@/lib/api/admin";
 import { checkAdminRateLimit, getClientIp } from "@/lib/rate-limit";
+import { db } from "@/lib/db";
+import { users, habits, habitLogs } from "@/lib/db/schema";
+import { count, eq, gte, ilike, or, inArray, desc, and } from "drizzle-orm";
+import { format, subDays } from "date-fns";
 
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
@@ -10,13 +13,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
-  // Verify caller is admin via session client
-  const sessionClient = createSupabaseServerClient();
-  const admin = await requireAdmin(sessionClient);
+  // Verify caller is admin
+  const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  // Use service-role client for data queries — bypasses RLS
-  const supabase = createSupabaseAdminClient();
 
   const { searchParams } = new URL(request.url);
   const search = searchParams.get("search") ?? "";
@@ -25,23 +24,34 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 100);
   const offset = (page - 1) * limit;
 
-  // Get all users with their profiles
-  let profilesQuery = supabase
-    .from("user_profiles")
-    .select("*", { count: "exact" });
-
-  // Note: We'll filter by email after getting auth users
+  // Build the query conditions
+  const conditions = [];
   if (plan) {
-    profilesQuery = profilesQuery.eq("plan", plan);
+    conditions.push(eq(users.plan, plan as any));
+  }
+  if (search) {
+    const searchPattern = `%${search}%`;
+    conditions.push(
+      or(
+        ilike(users.name, searchPattern),
+        ilike(users.email, searchPattern)
+      )
+    );
   }
 
-  const { data: profiles, error: profilesError, count } = await profilesQuery
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+  const whereClause = conditions.length > 0 
+    ? (conditions.length === 1 ? conditions[0] : and(...conditions)) 
+    : undefined;
 
-  if (profilesError) return NextResponse.json({ error: profilesError.message }, { status: 500 });
+  // Fetch count
+  const countRes = await db
+    .select({ count: count() })
+    .from(users)
+    .where(whereClause);
+    
+  const totalCount = countRes[0].count;
 
-  if (!profiles || profiles.length === 0) {
+  if (totalCount === 0) {
     return NextResponse.json({
       users: [],
       total: 0,
@@ -51,101 +61,75 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Get auth users for these profiles
-  const { data: authUsers, error: authError } = await supabase
-    .auth.admin.listUsers();
+  // Fetch paginated users
+  const pagedUsers = await db
+    .select()
+    .from(users)
+    .where(whereClause)
+    .orderBy(desc(users.createdAt))
+    .limit(limit)
+    .offset(offset);
 
-  if (authError) {
-    return NextResponse.json({ error: authError.message }, { status: 500 });
-  }
-
-  // Create a map of user_id -> auth user data
-  const authUsersMap = new Map(
-    authUsers.users.map((u) => [u.id, u])
-  );
-
-  // Filter profiles based on search (name or email)
-  let filteredProfiles = profiles;
-  if (search) {
-    const searchLower = search.toLowerCase();
-    filteredProfiles = profiles.filter((profile) => {
-      const authUser = authUsersMap.get(profile.id);
-      const nameMatch = profile.name?.toLowerCase().includes(searchLower);
-      const emailMatch = authUser?.email?.toLowerCase().includes(searchLower);
-      return nameMatch || emailMatch;
-    });
-  }
+  const userIds = pagedUsers.map(u => u.id);
 
   // Get habit counts for each user
-  const userIds = filteredProfiles.map((p) => p.id);
-  const { data: habits } = await supabase
-    .from("habits")
-    .select("id, user_id, is_active")
-    .in("user_id", userIds);
+  const userHabits = await db
+    .select({ userId: habits.userId, id: habits.id })
+    .from(habits)
+    .where(and(inArray(habits.userId, userIds), eq(habits.isActive, true)));
 
   const habitCounts = new Map<string, number>();
-  if (habits) {
-    for (const habit of habits) {
-      if (habit.is_active !== false) {
-        habitCounts.set(habit.user_id, (habitCounts.get(habit.user_id) || 0) + 1);
-      }
-    }
+  const habitToUserMap = new Map<string, string>();
+  for (const habit of userHabits) {
+    habitCounts.set(habit.userId, (habitCounts.get(habit.userId) || 0) + 1);
+    habitToUserMap.set(habit.id, habit.userId);
   }
 
   // Get logs count for last 7 days
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const dateStr = sevenDaysAgo.toISOString().split('T')[0];
+  const sevenDaysAgo = format(subDays(new Date(), 7), "yyyy-MM-dd");
+  const habitIds = userHabits.map(h => h.id);
 
-  const { data: logs } = await supabase
-    .from("habit_logs")
-    .select("habit_id")
-    .gte("date", dateStr);
+  let logsCount = new Map<string, number>();
+  
+  if (habitIds.length > 0) {
+    const logs = await db
+      .select({ habitId: habitLogs.habitId })
+      .from(habitLogs)
+      .where(
+        and(
+          inArray(habitLogs.habitId, habitIds),
+          gte(habitLogs.date, sevenDaysAgo)
+        )
+      );
 
-  // Get habit IDs for logs
-  const loggedHabitIds = logs?.map((l) => l.habit_id) || [];
-  const logCounts = new Map<string, number>();
-
-  if (loggedHabitIds.length > 0 && habits) {
-    // Create habit_id -> user_id map
-    const habitToUserMap = new Map<string, string>();
-    for (const habit of habits) {
-      habitToUserMap.set(habit.id, habit.user_id);
-    }
-
-    // Count logs per user
-    for (const log of logs || []) {
-      const userId = habitToUserMap.get(log.habit_id);
+    for (const log of logs) {
+      const userId = habitToUserMap.get(log.habitId);
       if (userId) {
-        logCounts.set(userId, (logCounts.get(userId) || 0) + 1);
+        logsCount.set(userId, (logsCount.get(userId) || 0) + 1);
       }
     }
   }
 
   // Transform to AdminUser format
-  const users = filteredProfiles.map((profile) => {
-    const authUser = authUsersMap.get(profile.id);
-
-    return {
-      id: profile.id,
-      email: authUser?.email || "",
-      created_at: authUser?.created_at || profile.created_at,
-      last_sign_in_at: authUser?.last_sign_in_at || null,
-      name: profile.name,
-      plan: profile.plan,
-      is_banned: profile.is_banned,
-      ban_reason: profile.ban_reason,
-      avatar_url: profile.avatar_url,
-      habit_count: habitCounts.get(profile.id) || 0,
-      logs_last_7_days: logCounts.get(profile.id) || 0,
-    };
-  });
+  const resultUsers = pagedUsers.map((user) => ({
+    id: user.id,
+    email: user.email || "",
+    created_at: user.createdAt,
+    last_sign_in_at: user.updatedAt, // Approximate
+    name: user.name,
+    plan: user.plan,
+    is_banned: user.isBanned,
+    ban_reason: user.banReason,
+    avatar_url: user.image,
+    habit_count: habitCounts.get(user.id) || 0,
+    logs_last_7_days: logsCount.get(user.id) || 0,
+  }));
 
   return NextResponse.json({
-    users,
-    total: count ?? 0,
+    users: resultUsers,
+    total: totalCount,
     page,
     limit,
-    totalPages: Math.ceil((count ?? 0) / limit),
+    totalPages: Math.ceil(totalCount / limit),
   });
 }

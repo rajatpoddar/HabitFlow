@@ -1,32 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { auth } from '@/auth';
+import { db } from '@/lib/db';
+import { pushSubscriptions } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
+    const session = await auth();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -42,27 +24,32 @@ export async function POST(request: NextRequest) {
 
     // Extract keys from subscription
     const { endpoint, keys } = subscription;
-    const { p256dh, auth } = keys;
+    const { p256dh, auth: authKey } = keys;
 
-    // Upsert subscription to database
-    const { error } = await supabase.from('push_subscriptions').upsert(
-      {
-        user_id: user.id,
+    // Check if subscription exists
+    const [existing] = await db
+      .select()
+      .from(pushSubscriptions)
+      .where(
+        and(
+          eq(pushSubscriptions.userId, session.user.id),
+          eq(pushSubscriptions.endpoint, endpoint)
+        )
+      )
+      .limit(1);
+
+    if (existing) {
+      await db
+        .update(pushSubscriptions)
+        .set({ p256dh, auth: authKey })
+        .where(eq(pushSubscriptions.id, existing.id));
+    } else {
+      await db.insert(pushSubscriptions).values({
+        userId: session.user.id,
         endpoint,
         p256dh,
-        auth,
-      },
-      {
-        onConflict: 'user_id,endpoint',
-      }
-    );
-
-    if (error) {
-      console.error('Error saving push subscription:', error);
-      return NextResponse.json(
-        { error: 'Failed to save subscription' },
-        { status: 500 }
-      );
+        auth: authKey,
+      });
     }
 
     return NextResponse.json({ success: true });

@@ -1,25 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
-  const supabase = createSupabaseServerClient();
+  const session = await auth();
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("stripe_subscription_id, plan")
-    .eq("id", user.id)
-    .single();
+  const [profile] = await db
+    .select({ stripeSubscriptionId: users.stripeSubscriptionId, plan: users.plan })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
 
-  if (!profile?.stripe_subscription_id || profile.plan !== "pro") {
+  if (!profile?.stripeSubscriptionId || profile.plan !== "pro") {
     return NextResponse.json({ error: "No active subscription found" }, { status: 404 });
   }
 

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { db } from '@/lib/db';
+import { users, habits, habitLogs } from '@/lib/db/schema';
+import { eq, inArray, and } from 'drizzle-orm';
 import { sendEmail } from '@/lib/email';
 import StreakRiskEmail from '@/emails/StreakRiskEmail';
 
@@ -13,50 +15,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
     // Get users with active streaks > 3 days who haven't completed habits today
     const today = new Date().toISOString().split('T')[0];
 
-    // This is a simplified version - in production, you'd calculate streaks properly
-    const { data: users } = await supabase
-      .from('user_profiles')
-      .select('id, name, email_streak_risk')
-      .eq('email_streak_risk', true);
+    // Get users opted into this email
+    const usersList = await db
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(eq(users.emailStreakRisk, true));
 
-    if (!users || users.length === 0) {
+    if (!usersList || usersList.length === 0) {
       return NextResponse.json({ success: true, sent: 0 });
     }
 
     let sentCount = 0;
 
-    for (const userProfile of users) {
-      // Get user email from auth.users
-      const { data: authUser } = await supabase.auth.admin.getUserById(userProfile.id);
-      if (!authUser?.user?.email) continue;
+    for (const user of usersList) {
+      if (!user.email) continue;
 
       // Get user's habits
-      const { data: habits } = await supabase
-        .from('habits')
-        .select('id, name, icon')
-        .eq('user_id', userProfile.id)
-        .eq('is_active', true);
+      const userHabits = await db
+        .select({ id: habits.id, name: habits.name, icon: habits.icon })
+        .from(habits)
+        .where(
+          and(
+            eq(habits.userId, user.id),
+            eq(habits.isActive, true)
+          )
+        );
 
-      if (!habits || habits.length === 0) continue;
+      if (!userHabits || userHabits.length === 0) continue;
+
+      const habitIds = userHabits.map((h) => h.id);
 
       // Get today's logs
-      const { data: logs } = await supabase
-        .from('habit_logs')
-        .select('habit_id')
-        .in('habit_id', habits.map(h => h.id))
-        .eq('date', today)
-        .eq('status', 'done');
+      const logs = await db
+        .select({ habitId: habitLogs.habitId })
+        .from(habitLogs)
+        .where(
+          and(
+            inArray(habitLogs.habitId, habitIds),
+            eq(habitLogs.date, today),
+            eq(habitLogs.status, 'done')
+          )
+        );
 
-      const completedHabitIds = new Set(logs?.map(l => l.habit_id) || []);
-      const incompleteHabits = habits
+      const completedHabitIds = new Set(logs.map(l => l.habitId));
+      const incompleteHabits = userHabits
         .filter(h => !completedHabitIds.has(h.id))
         .map(h => ({ name: h.name, icon: h.icon }));
 
@@ -67,10 +72,10 @@ export async function POST(request: NextRequest) {
 
       try {
         await sendEmail({
-          to: authUser.user.email,
+          to: user.email,
           subject: `Don't break your ${currentStreak}-day streak! 🔥`,
           react: StreakRiskEmail({
-            firstName: userProfile.name?.split(' ')[0] || 'there',
+            firstName: user.name?.split(' ')[0] || 'there',
             currentStreak,
             incompleteHabits,
             dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
@@ -78,7 +83,7 @@ export async function POST(request: NextRequest) {
         });
         sentCount++;
       } catch (error) {
-        console.error(`Failed to send streak risk email to ${authUser.user.email}:`, error);
+        console.error(`Failed to send streak risk email to ${user.email}:`, error);
       }
     }
 

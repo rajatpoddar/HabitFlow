@@ -29,6 +29,16 @@ export const users = pgTable("user", {
   occupation: text("occupation"),
   bio: text("bio"),
   friendUpdatesEnabled: boolean("friend_updates_enabled").default(true).notNull(),
+  isBanned: boolean("is_banned").default(false).notNull(),
+  banReason: text("ban_reason"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  subscriptionStatus: text("subscription_status").default("inactive"),
+  emailWelcome: boolean("email_welcome").default(true).notNull(),
+  emailStreakRisk: boolean("email_streak_risk").default(true).notNull(),
+  emailWeeklyDigest: boolean("email_weekly_digest").default(true).notNull(),
+  emailMilestones: boolean("email_milestones").default(true).notNull(),
+  streakFreezes: integer("streak_freezes").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -183,4 +193,17 @@ export const feedLikes = pgTable("feed_likes", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => ({
   unq: uniqueIndex("unique_like").on(t.userId, t.journalEntryId),
+}));
+
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  unq: uniqueIndex("push_sub_unq_idx").on(t.userId, t.endpoint),
 }));
