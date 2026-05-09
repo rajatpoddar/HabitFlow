@@ -29,7 +29,7 @@ export default function LoginPage() {
         redirect: false,
       });
 
-      if (result?.error) {
+      if (!result || result.error || !result.ok) {
         toast.error("Invalid email or password");
       } else {
         toast.success("Welcome back!");
