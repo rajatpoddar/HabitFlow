@@ -1,91 +1,43 @@
 /**
- * Serverless-safe rate limiter using Upstash Redis
- * Falls back to allowing all requests if Upstash is not configured (local dev)
+ * Local rate limiter memory fallback.
  */
 
-import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
+// We track request timestamps locally per identifier and limit type.
+const limits = new Map<string, number[]>();
 
-// Check if Upstash is configured
-const isUpstashConfigured =
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN;
+function checkLimit(identifier: string, limit: number, windowMs: number): { success: boolean; remaining: number } {
+  const now = Date.now();
+  let history = limits.get(identifier) || [];
 
-let redis: Redis | null = null;
-let authRateLimit: Ratelimit | null = null;
-let apiRateLimit: Ratelimit | null = null;
-let adminRateLimit: Ratelimit | null = null;
+  // Clean up old entries
+  history = history.filter(time => now - time < windowMs);
 
-if (isUpstashConfigured) {
-  redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL!,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-  });
+  if (history.length >= limit) {
+    limits.set(identifier, history);
+    return { success: false, remaining: 0 };
+  }
 
-  authRateLimit = new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(5, '60 s'),
-    analytics: true,
-    prefix: 'habitflow:auth',
-  });
-
-  apiRateLimit = new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(60, '60 s'),
-    analytics: true,
-    prefix: 'habitflow:api',
-  });
-
-  adminRateLimit = new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(30, '60 s'),
-    analytics: true,
-    prefix: 'habitflow:admin',
-  });
+  history.push(now);
+  limits.set(identifier, history);
+  return { success: true, remaining: limit - history.length };
 }
 
-/**
- * Rate limit for auth endpoints (5 requests per minute)
- */
 export async function checkAuthRateLimit(
   identifier: string
 ): Promise<{ success: boolean; remaining: number }> {
-  if (!authRateLimit) {
-    console.warn('Upstash not configured, skipping auth rate limit');
-    return { success: true, remaining: 999 };
-  }
-
-  const { success, remaining } = await authRateLimit.limit(identifier);
-  return { success, remaining };
+  return checkLimit(`auth:${identifier}`, 5, 60000);
 }
 
-/**
- * Rate limit for API endpoints (60 requests per minute)
- */
 export async function checkApiRateLimit(
   identifier: string
 ): Promise<{ success: boolean; remaining: number }> {
-  if (!apiRateLimit) {
-    console.warn('Upstash not configured, skipping API rate limit');
-    return { success: true, remaining: 999 };
-  }
-
-  const { success, remaining } = await apiRateLimit.limit(identifier);
-  return { success, remaining };
+  return checkLimit(`api:${identifier}`, 60, 60000);
 }
 
-/**
- * Rate limit for admin endpoints (30 requests per minute)
- */
 export async function checkAdminRateLimit(
   identifier: string
 ): Promise<{ success: boolean; remaining: number }> {
-  if (!adminRateLimit) {
-    console.warn('Upstash not configured, skipping admin rate limit');
-    return { success: true, remaining: 999 };
-  }
-
-  const { success, remaining } = await adminRateLimit.limit(identifier);
-  return { success, remaining };
+  return checkLimit(`admin:${identifier}`, 30, 60000);
 }
 
 /**

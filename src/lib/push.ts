@@ -10,12 +10,16 @@ const vapidDetails = {
   subject: `mailto:${process.env.VAPID_EMAIL || "support@habitflow.com"}`,
 };
 
-if (vapidDetails.publicKey && vapidDetails.privateKey) {
-  webpush.setVapidDetails(
-    vapidDetails.subject,
-    vapidDetails.publicKey,
-    vapidDetails.privateKey
-  );
+if (vapidDetails.publicKey && vapidDetails.privateKey && vapidDetails.publicKey.length > 0 && vapidDetails.privateKey.length > 0) {
+  try {
+    webpush.setVapidDetails(
+      vapidDetails.subject,
+      vapidDetails.publicKey,
+      vapidDetails.privateKey
+    );
+  } catch (error) {
+    console.warn("Push notifications disabled: Invalid VAPID keys provided.");
+  }
 }
 
 export async function sendPushNotification(userId: string, payload: { title: string; body: string; icon?: string; data?: any }) {

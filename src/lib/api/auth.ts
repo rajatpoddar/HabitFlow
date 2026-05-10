@@ -30,6 +30,7 @@ export async function getCurrentUser(): Promise<User | null> {
     avatar: user.image,
     friend_updates_enabled: user.friendUpdatesEnabled,
     mobile_number: user.mobileNumber,
+    onboarding_completed: user.onboardingCompleted,
     created_at: user.createdAt.toISOString(),
     updated_at: user.updatedAt.toISOString(),
   } as unknown as User;
